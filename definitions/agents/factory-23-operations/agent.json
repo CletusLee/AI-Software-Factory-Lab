@@ -1,0 +1,12 @@
+{
+  "id": "factory-23",
+  "name": "Operations",
+  "group": "觀測",
+  "summary": "根據模擬的重送延遲訊號提出唯讀定位步驟。",
+  "skills": [
+    "trace-diagnosis",
+    "root-cause-analysis"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "症狀、檢查、可能原因、證據及升級條件"
+}

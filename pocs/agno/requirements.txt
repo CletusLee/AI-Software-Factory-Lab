@@ -1,0 +1,9 @@
+agno[os]>=2.6.0,<3.0.0
+sqlalchemy[asyncio]
+psycopg[binary]
+openai
+fastapi
+uvicorn
+openinference-instrumentation-agno
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-http

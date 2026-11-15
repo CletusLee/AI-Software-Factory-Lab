@@ -1,0 +1,12 @@
+{
+  "id": "factory-19",
+  "name": "Optimization",
+  "group": "觀測",
+  "summary": "提出版本化 Skill 改善草案與重新評估方式。",
+  "skills": [
+    "evaluation-benchmark",
+    "model-usage-cost"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "變更草案、基線、驗收指標與回滾準則"
+}

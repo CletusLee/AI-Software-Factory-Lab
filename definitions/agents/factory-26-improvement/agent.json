@@ -1,0 +1,12 @@
+{
+  "id": "factory-26",
+  "name": "Improvement",
+  "group": "治理",
+  "summary": "根據觀測與治理證據提出根因假設與驗證方案。",
+  "skills": [
+    "root-cause-analysis",
+    "evaluation-benchmark"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "根因假設、改善、驗證指標、風險及未證實事項"
+}

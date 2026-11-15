@@ -1,0 +1,11 @@
+{
+  "id": "factory-06",
+  "name": "Infrastructure",
+  "group": "主線",
+  "summary": "提出隔離測試環境與回滾設定。",
+  "skills": [
+    "deployment-rollback"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "環境依賴、設定建議、部署和回滾條件"
+}

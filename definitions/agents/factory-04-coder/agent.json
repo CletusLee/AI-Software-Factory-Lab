@@ -1,0 +1,12 @@
+{
+  "id": "factory-04",
+  "name": "Coder",
+  "group": "主線",
+  "summary": "審視工作項目候選變更、檔案範圍及程式風險。",
+  "skills": [
+    "patch-proposal",
+    "idempotency-transaction-design"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "候選修改、對應設計、驗證方式、風險及未執行事項"
+}

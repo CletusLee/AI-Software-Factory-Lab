@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "id": "PAY-482",
+  "title": "Reject conflicting payment webhook retries",
+  "problem": "The ledger treats every repeated event ID as a harmless retry. If the same ID arrives with a different amount, the conflicting payload is silently accepted and hidden.",
+  "acceptance_criteria": [
+    "An identical event ID and amount remains idempotent.",
+    "An identical event ID with a different amount raises ValueError.",
+    "A rejected conflicting retry does not change the original ledger entry."
+  ],
+  "candidate": {
+    "baseline_dir": "baseline",
+    "files": ["payment_demo.py", "test_payment_demo.py"],
+    "expected_baseline_failure": "test_same_event_with_conflicting_amount_is_rejected",
+    "changes": [
+      {
+        "path": "payment_demo.py",
+        "old": "        if event_id not in self.entries:\n            self.entries[event_id] = amount\n        return self.entries[event_id]\n",
+        "new": "        if event_id in self.entries:\n            if self.entries[event_id] != amount:\n                raise ValueError(f'conflicting payload for event {event_id!r}')\n            return self.entries[event_id]\n        self.entries[event_id] = amount\n        return amount\n"
+      }
+    ],
+    "test_command": ["python", "-m", "unittest", "-v", "test_payment_demo"]
+  },
+  "evidence": {
+    "source": "repository scenario fixture; ticket, CI and approval are simulated",
+    "scenarios": {
+      "stale": {
+        "recommendation": "NOT READY",
+        "reason": "The tested revision differs from the candidate revision.",
+        "candidate_commit": "a1b2c3d (simulated)",
+        "tested_commit": "f0e1d2c (simulated)"
+      },
+      "timeout": {
+        "recommendation": "UNKNOWN",
+        "reason": "The external CI evidence is unavailable in this fixture.",
+        "candidate_commit": "a1b2c3d (simulated)",
+        "tested_commit": "UNKNOWN"
+      },
+      "fail": {
+        "recommendation": "NOT READY",
+        "reason": "The fixture represents a failed concurrency check.",
+        "candidate_commit": "a1b2c3d (simulated)",
+        "tested_commit": "a1b2c3d (simulated)"
+      },
+      "ready": {
+        "recommendation": "READY",
+        "reason": "The fixture declares matching candidate and tested revisions; candidate acceptance tests still run in this workflow.",
+        "candidate_commit": "a1b2c3d (simulated)",
+        "tested_commit": "a1b2c3d (simulated)"
+      }
+    }
+  }
+}

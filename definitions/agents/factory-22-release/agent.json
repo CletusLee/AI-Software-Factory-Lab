@@ -1,0 +1,12 @@
+{
+  "id": "factory-22",
+  "name": "Release",
+  "group": "主線",
+  "summary": "依證據草擬發布和回滾計畫，不實際發布。",
+  "skills": [
+    "deployment-rollback",
+    "audit"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "發布前條件、觀測、回滾觸發及待核准"
+}

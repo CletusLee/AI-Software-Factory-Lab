@@ -1,0 +1,349 @@
+name: agno-factory-local
+services:
+  catalog-export:
+    image: agno-factory-local-agentos:latest
+    command: ["python", "/app/integration/export_catalog.py"]
+    environment:
+      MODEL_ID: ${MODEL_ID}
+    volumes:
+      - ./integration/export_catalog.py:/app/integration/export_catalog.py:ro
+      - ./integration/registry.py:/app/integration/registry.py:ro
+      - ./integration/catalog:/app/integration/catalog
+      - ./integration/librechat.yaml:/app/integration/librechat.yaml
+      - ../../definitions:/app/definitions:ro
+      - ./deployment:/app/deployment:ro
+    networks: [factory-net]
+
+  backstage-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: backstage
+      POSTGRES_PASSWORD: ${BACKSTAGE_DB_PASSWORD}
+      POSTGRES_DB: backstage
+    volumes:
+      - backstage_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U backstage -d backstage"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [factory-net]
+
+  backstage:
+    image: factory-backstage:local
+    build:
+      context: ./backstage
+    command: ["sh", "-c", "tar xzf packages/backend/dist/bundle.tar.gz && exec node packages/backend --config app-config.yaml --config app-config.production.yaml"]
+    ports:
+      - "127.0.0.1:7007:7007"
+    environment:
+      POSTGRES_HOST: backstage-db
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: backstage
+      POSTGRES_PASSWORD: ${BACKSTAGE_DB_PASSWORD}
+    volumes:
+      - ./integration/catalog:/catalog:ro
+      - ./backstage/app-config.production.yaml:/app/app-config.production.yaml:ro
+    depends_on:
+      backstage-db:
+        condition: service_healthy
+      catalog-export:
+        condition: service_completed_successfully
+    networks: [factory-net]
+
+  agno-gateway:
+    image: agno-factory-local-agentos:latest
+    command: ["uvicorn", "gateway:app", "--host", "0.0.0.0", "--port", "8080"]
+    environment:
+      OS_SECURITY_KEY: ${OS_SECURITY_KEY}
+      AGENTOS_URL: http://agentos:7777
+    volumes:
+      - ./integration/gateway.py:/app/gateway.py:ro
+      - ./integration/registry.py:/app/integration/registry.py:ro
+      - ../../definitions:/app/definitions:ro
+      - ./deployment:/app/deployment:ro
+      - ./swarm-output:/data:ro
+    ports:
+      - "127.0.0.1:7778:8080"
+    depends_on: [agentos]
+    networks: [factory-net]
+
+  librechat-mongodb:
+    image: mongo:8.0.20
+    volumes:
+      - librechat_mongo:/data/db
+    networks: [factory-net]
+
+  librechat:
+    image: registry.librechat.ai/librechat-ai/librechat-dev:latest
+    ports:
+      - "127.0.0.1:3080:3080"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3080"
+      MONGO_URI: mongodb://librechat-mongodb:27017/LibreChat
+      DOMAIN_CLIENT: http://localhost:3080
+      DOMAIN_SERVER: http://localhost:3080
+      JWT_SECRET: ${LIBRECHAT_JWT_SECRET}
+      JWT_REFRESH_SECRET: ${LIBRECHAT_JWT_REFRESH_SECRET}
+      CREDS_KEY: ${LIBRECHAT_CREDS_KEY}
+      CREDS_IV: ${LIBRECHAT_CREDS_IV}
+      OS_SECURITY_KEY: ${OS_SECURITY_KEY}
+      ALLOW_REGISTRATION: "true"
+      ALLOW_EMAIL_LOGIN: "true"
+      ALLOW_UNVERIFIED_EMAIL_LOGIN: "true"
+      SEARCH: "false"
+      SCHEDULES_SINGLE_PROCESS: "true"
+    volumes:
+      - ./integration/librechat.yaml:/app/librechat.yaml:ro
+      - librechat_data:/app/data
+      - librechat_uploads:/app/uploads
+      - librechat_images:/app/client/public/images
+    depends_on:
+      librechat-mongodb:
+        condition: service_started
+      agno-gateway:
+        condition: service_started
+      catalog-export:
+        condition: service_completed_successfully
+    networks: [factory-net]
+
+  # ==========================================
+  # 1. Agno 狀態與向量資料庫 (PostgreSQL + pgvector)
+  # ==========================================
+  agno-db:
+    image: pgvector/pgvector:pg16
+    container_name: factory-agno-db
+    environment:
+      POSTGRES_DB: ai
+      POSTGRES_USER: ai
+      POSTGRES_PASSWORD: ai
+    volumes:
+      - agno_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5532:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai -d ai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - factory-net
+
+  # ==========================================
+  # 2. Agno AgentOS 後端執行層
+  # ==========================================
+  agentos:
+    image: agno-factory-local-agentos:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.agentos
+    container_name: factory-agentos
+    ports:
+      - "7777:7777"
+    environment:
+      DATABASE_URL: postgresql+psycopg://ai:ai@agno-db:5432/ai
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      MODEL_ID: ${MODEL_ID}
+      OS_SECURITY_KEY: ${OS_SECURITY_KEY}
+      AGNO_TELEMETRY: "false"
+      # 透過內部網路將 OTel Trace 送往 Langfuse
+      LANGFUSE_OTEL_ENDPOINT: http://langfuse-web:3000/api/public/otel/v1/traces
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY}
+    volumes:
+      - ./app.py:/app/app.py
+      - ../../scenarios:/app/scenarios:ro
+      - ../../scenarios/pay-482/payment_demo.py:/app/payment_demo.py:ro
+      - ../../scenarios/pay-482/pay482_evidence.py:/app/pay482_evidence.py:ro
+      - ../../scenarios/pay-482/test_payment_demo.py:/app/test_payment_demo.py:ro
+      - ../../benchmark:/app/benchmark:ro
+      - ./test_native_workflows.py:/app/test_native_workflows.py:ro
+      - ./factory_swarm.py:/app/factory_swarm.py:ro
+      - ./native_workflows.py:/app/native_workflows.py:ro
+      - ./integration/registry.py:/app/integration/registry.py:ro
+      - ../../definitions:/app/definitions:ro
+      - ./deployment:/app/deployment:ro
+      - ./native_demo_run.py:/app/native_demo_run.py:ro
+      - ./native_report.py:/app/native_report.py:ro
+      - ./native_report_template.html:/app/native_report_template.html:ro
+      - ./swarm-output:/app/swarm-output
+    depends_on:
+      agno-db:
+        condition: service_healthy
+    networks:
+      - factory-net
+
+  # ==========================================
+  # 3. 開源版 Agno Agent UI (Next.js 前端)
+  # ==========================================
+  agent-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+      args:
+        NEXT_PUBLIC_OS_SECURITY_KEY: ${OS_SECURITY_KEY}
+    container_name: factory-agent-ui
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_OS_SECURITY_KEY: ${OS_SECURITY_KEY}
+    depends_on:
+      - agentos
+    networks:
+      - factory-net
+
+  # ==========================================
+  # 4. Self-Hosted Langfuse v3 (Trace 與成本觀測)
+  # ==========================================
+  langfuse-postgres:
+    image: postgres:16-alpine
+    container_name: factory-langfuse-pg
+    environment:
+      POSTGRES_DB: langfuse
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: langfuse
+    volumes:
+      - langfuse_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse -d langfuse"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - factory-net
+
+  langfuse-clickhouse:
+    image: clickhouse/clickhouse-server:24.8-alpine
+    container_name: factory-langfuse-ch
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse
+    volumes:
+      - langfuse_ch_data:/var/lib/clickhouse
+      - langfuse_ch_logs:/var/log/clickhouse-server
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8123/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - factory-net
+
+  langfuse-redis:
+    image: redis:7-alpine
+    container_name: factory-langfuse-redis
+    command: --requirepass myredissecret
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "myredissecret", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - factory-net
+
+  langfuse-minio:
+    image: pgsty/silo:RELEASE.2026-11-09T00-00-00Z
+    container_name: factory-langfuse-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: miniosecret
+    volumes:
+      - langfuse_minio_data:/data
+    healthcheck:
+      test: ["CMD", "silo", "healthcheck", "ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - factory-net
+
+  minio-init:
+    image: pgsty/silo:RELEASE.2026-11-09T00-00-00Z
+    container_name: factory-minio-init
+    depends_on:
+      langfuse-minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      set -e;
+      mcli alias set myminio http://langfuse-minio:9000 minio miniosecret;
+      mcli mb myminio/langfuse --ignore-existing;
+      "
+    networks:
+      - factory-net
+
+  langfuse-worker:
+    image: langfuse/langfuse-worker:3
+    container_name: factory-langfuse-worker
+    environment: &langfuse-env
+      DATABASE_URL: postgresql://langfuse:langfuse@langfuse-postgres:5432/langfuse
+      SALT: factory-local-salt-secret-key-2026
+      ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+      NEXTAUTH_URL: http://localhost:3001
+      NEXTAUTH_SECRET: factory-local-nextauth-secret-2026
+      CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
+      CLICKHOUSE_URL: http://langfuse-clickhouse:8123
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      REDIS_HOST: langfuse-redis
+      REDIS_PORT: 6379
+      REDIS_AUTH: myredissecret
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: miniosecret
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+      TELEMETRY_ENABLED: "false"
+    depends_on:
+      langfuse-postgres:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    networks:
+      - factory-net
+
+  langfuse-web:
+    image: langfuse/langfuse:3
+    container_name: factory-langfuse-web
+    ports:
+      - "3001:3000"
+    environment:
+      <<: *langfuse-env
+    depends_on:
+      langfuse-postgres:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    networks:
+      - factory-net
+
+networks:
+  factory-net:
+    driver: bridge
+
+volumes:
+  backstage_pgdata:
+  librechat_mongo:
+  librechat_data:
+  librechat_uploads:
+  librechat_images:
+  agno_pgdata:
+  langfuse_pgdata:
+  langfuse_ch_data:
+  langfuse_ch_logs:
+  langfuse_minio_data:

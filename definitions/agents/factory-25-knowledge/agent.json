@@ -1,0 +1,12 @@
+{
+  "id": "factory-25",
+  "name": "Knowledge",
+  "group": "知識",
+  "summary": "整理工作項目相關知識與證據來源。",
+  "skills": [
+    "evidence-review",
+    "webhook-contract"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "知識摘要、來源、衝突與待確認問題"
+}

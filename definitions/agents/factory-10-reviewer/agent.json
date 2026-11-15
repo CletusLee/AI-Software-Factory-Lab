@@ -1,0 +1,12 @@
+{
+  "id": "factory-10",
+  "name": "Reviewer",
+  "group": "驗證",
+  "summary": "審查候選修正與測試證據，指出放行前尚缺事項。",
+  "skills": [
+    "evidence-review",
+    "payment-testing"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "審查結論、證據、衝突、阻擋與交接"
+}

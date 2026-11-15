@@ -1,0 +1,12 @@
+{
+  "id": "factory-13",
+  "name": "Documentation",
+  "group": "主線",
+  "summary": "草擬 Wiki 更新，記下案例與證據來源。",
+  "skills": [
+    "adr-documentation",
+    "evidence-review"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "變更摘要、契約、證據引用、未知與後續"
+}

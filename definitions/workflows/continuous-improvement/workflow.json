@@ -1,0 +1,37 @@
+{
+  "id": "continuous-improvement",
+  "name": "Continuous Improvement",
+  "description": "跨工作項目的持續改善流程；以觀測與治理證據產生可驗證的改善草案。",
+  "steps": [
+    {
+      "name": "Observability",
+      "type": "team",
+      "ref": "observability-team"
+    },
+    {
+      "name": "Observability Check",
+      "type": "executor",
+      "ref": "require_observability"
+    },
+    {
+      "name": "Governance",
+      "type": "team",
+      "ref": "governance-team"
+    },
+    {
+      "name": "Governance Check",
+      "type": "executor",
+      "ref": "require_governance"
+    },
+    {
+      "name": "Improvement",
+      "type": "agent",
+      "ref": "factory-26"
+    },
+    {
+      "name": "Optimization",
+      "type": "agent",
+      "ref": "factory-19"
+    }
+  ]
+}

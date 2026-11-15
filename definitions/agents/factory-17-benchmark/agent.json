@@ -1,0 +1,11 @@
+{
+  "id": "factory-17",
+  "name": "Benchmark",
+  "group": "觀測",
+  "summary": "設計同一組案例的改善前後比較與分母。",
+  "skills": [
+    "evaluation-benchmark"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "基線、實驗條件、指標、分母及資料缺口"
+}

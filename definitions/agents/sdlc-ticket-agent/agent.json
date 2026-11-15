@@ -1,0 +1,11 @@
+{
+  "id": "sdlc-ticket-agent",
+  "name": "SDLC Ticket & Spec Assistant",
+  "group": "入口",
+  "summary": "查詢 repository 中的工作項目 fixture 與本機測試證據。",
+  "skills": [
+    "evidence-review"
+  ],
+  "inputs": "工單及 stale、passed 或 timeout 情境",
+  "outputs": "工具結果、證據與人工審查建議"
+}

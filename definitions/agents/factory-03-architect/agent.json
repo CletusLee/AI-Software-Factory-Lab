@@ -1,0 +1,12 @@
+{
+  "id": "factory-03",
+  "name": "Architect",
+  "group": "主線",
+  "summary": "依工作項目領域設計資料一致性、交易邊界與失敗處理。",
+  "skills": [
+    "idempotency-transaction-design",
+    "adr-documentation"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "設計、資料及交易邊界、失敗模式、待驗證假設"
+}

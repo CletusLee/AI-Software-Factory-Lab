@@ -1,0 +1,11 @@
+{
+  "id": "factory-11",
+  "name": "Security",
+  "group": "驗證",
+  "summary": "提出身分驗證、租戶隔離與權限風險缺口。",
+  "skills": [
+    "webhook-security"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "威脅、現有證據、缺口與建議驗證"
+}

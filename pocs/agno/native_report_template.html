@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PAY-482 · Workflow 執行報告</title>
+<style>
+:root{font:15px/1.65 Inter,"Segoe UI","Microsoft JhengHei",system-ui,sans-serif;color:#132538;background:#edf2f6;--line:#b7c9d9;--navy:#14304a;--blue:#175c86;--green:#15724d;--red:#a42d2d}
+*{box-sizing:border-box}
+body{margin:0}
+a{color:var(--blue)}
+a:focus-visible,summary:focus-visible{outline:3px solid #1688ba;outline-offset:3px}
+main,.shell{max-width:1450px;margin:auto;padding:0 clamp(16px,4vw,55px)}
+header{background:var(--navy);color:#f1f7fb;padding:32px 0}
+header p{margin:9px 0 0;color:#ccdeea}
+header a{display:inline-block;margin-top:10px;color:#f1f7fb;font-weight:650}
+h1,h2,h3,h4{line-height:1.25}
+h1{font-size:clamp(2rem,5vw,3.1rem);margin:0}
+h2{font-size:1.45rem;margin:28px 0 9px}
+h3{font-size:1.25rem;margin:4px 0}
+h4{font-size:1.08rem;margin:5px 0}
+p{margin:7px 0}
+.overline{font-size:.77rem;font-weight:750;letter-spacing:.045em;text-transform:uppercase}
+.subtle{color:#516477;font-size:.9rem}
+.story,.run-summary,.capture-note,figure{background:white;border:1px solid #cbd8e3;border-radius:10px;padding:16px;margin:10px 0}
+.scenario-flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+.scenario-flow div{border-left:3px solid #2b789b;padding:7px 10px;background:#edf5fa}
+.scenario-flow strong{display:block}
+.platform-flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
+.platform-flow article{background:#fff;border:1px solid #b7c9d9;border-top:4px solid #175c86;border-radius:8px;padding:14px}
+.platform-flow h3{font-size:1rem;margin:0 0 7px}
+.platform-flow p{font-size:.9rem}
+.platform-flow code{font-size:.85rem}
+.notice,.verify{padding:10px 14px;margin:10px 0;border-left:4px solid #8e641b;background:#fff5dc;border-radius:4px}
+.verify{background:#e9f5f2;border-color:#23725d}
+.table-scroll{overflow:auto}
+table{border-collapse:collapse;width:100%;background:white;font-size:.88rem}
+th,td{border:1px solid #d6e0e8;padding:7px 10px;text-align:left;vertical-align:top}
+thead th{background:#e1ecf4}
+td ul{margin:0;padding-left:18px}
+.switch{display:flex;gap:7px;flex-wrap:wrap;margin:13px 0}
+.switch a{border:1px solid var(--line);border-radius:6px;background:white;padding:6px 10px;text-decoration:none;font-weight:650}
+.switch a:hover,.switch a[aria-current=true]{background:#ddebfa;border-color:var(--blue)}
+.switch small{color:#526779;font-weight:500}
+.run{margin-bottom:25px}
+.run-summary{display:grid;grid-template-columns:1fr minmax(280px,.9fr);gap:18px}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:3px 10px;margin:0;font-size:.86rem}
+dt{font-weight:700}
+dd{margin:0;min-width:0}
+code{overflow-wrap:anywhere}
+.workspace{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;align-items:start;margin:12px 0}
+.graph{background:#f7fafd;border:1px solid #cbd8e3;border-radius:10px;padding:15px;min-width:0}
+.node,.member{display:block;min-width:0;border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:7px;background:#fff;text-decoration:none;color:#142c42;padding:8px 10px;overflow-wrap:anywhere}
+.node.ok,.member.ok{border-left-color:var(--green)}
+.node.error,.member.error{border-left-color:var(--red);background:#fff1ef}
+.node.muted,.member.muted{border-left-color:#a0aebb;background:#edf2f5;color:#4c5a69}
+.node:hover,.member:hover,.node[aria-current=true],.member[aria-current=true]{outline:2px solid #2788b6;outline-offset:1px}
+.node span,.node small,.member small{display:block;font-size:.8rem}
+.node small,.member small{color:#536579;font-weight:650}
+.down{text-align:center;font-size:1.2rem;font-weight:800;color:#375b76;line-height:1.4}
+.branches{display:grid;grid-template-columns:minmax(0,2fr) minmax(102px,.68fr);gap:9px;margin-top:9px}
+.route{display:block;text-align:center;padding:5px 3px;border-radius:5px;background:#def1e8;color:#245641;font-weight:750;font-size:.76rem;margin-bottom:7px}
+.rejected .route{background:#faead8;color:#754716}
+.team-block{border:1px dashed #7994af;background:#edf4fb;border-radius:9px;padding:8px}
+.members{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.member{font-size:.85rem;padding:5px 7px}
+.delegation,.fan-label{font-size:.78rem;color:#2b536e;text-align:center;font-weight:700;margin:5px 0}
+.parallel,.fork{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.parallel .node{padding:7px 6px}
+.parallel .node strong{font-size:.86rem}
+.fan{border-radius:8px;background:#eaf2fa;padding:6px}
+.fork{height:19px;position:relative}
+.fork::after{content:"";position:absolute;left:16.67%;right:16.67%;top:50%;border-top:1px solid #547c9d}
+.fork i{position:relative}
+.fork i::after{content:"";position:absolute;left:50%;top:50%;height:50%;border-left:1px solid #547c9d}
+.fork i:nth-child(2)::after{top:0;height:100%}
+.fork.merge i::after{top:0}
+.inspector{position:sticky;top:12px;max-height:calc(100dvh - 24px);overflow:auto;min-width:0;scroll-margin-top:10px}
+.node-detail{background:white;border:1px solid #cbd8e3;border-radius:9px;padding:13px;margin:6px 0;overflow-wrap:anywhere}
+.pill{font-size:.73rem;display:inline-block;margin-left:5px;padding:3px 5px;border-radius:4px;background:#e8eef3;color:#3f5265}
+.pill.ok{background:#def1e8;color:#155b3b}
+.pill.error,.error{color:var(--red)}
+.pill.error{background:#fbe6e4}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f5f9;border:1px solid #dae4ee;border-radius:6px;padding:9px 12px;font:.81rem/1.55 ui-monospace,Consolas,monospace;max-height:400px;overflow:auto}
+details{margin:7px 0}
+summary{cursor:pointer;font-weight:660}
+.media{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-bottom:28px}
+figure img{display:block;width:100%;height:auto;border-radius:6px;max-height:620px;object-fit:contain;background:#111}
+.langfuse-capture img{max-height:none;background:#fff;border:1px solid #e1eaf1}
+.langfuse-capture h3{margin:0 0 10px}
+.zoom-controls,.trace-jumps{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:10px 0}
+.zoom-controls button,.trace-jumps a{font:inherit;font-weight:650;color:var(--blue);background:#f4f8fc;border:1px solid var(--line);border-radius:6px;padding:4px 10px}
+.zoom-controls button{cursor:pointer;min-width:38px}
+.zoom-controls button:disabled{opacity:.45;cursor:default}
+.zoom-controls output{margin-left:6px;font-variant-numeric:tabular-nums;color:#455a70}
+.trace-jumps a{font-size:.87rem;text-decoration:none}
+.trace-jumps a:hover,.zoom-controls button:hover:not(:disabled){background:#e4f0fa}
+.graph-viewport{overflow:auto;max-height:75vh;border:1px solid #cbd8e3;border-radius:6px;background:#fff}
+.graph-viewport:focus-visible,.zoom-controls button:focus-visible{outline:3px solid #1688ba;outline-offset:2px}
+.langfuse-capture .capture-viewport img{width:calc(min(100%, var(--capture-width)) * var(--graph-scale,1));max-width:none;border:0;border-radius:0;margin:auto}
+.graph-captures{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px;margin:12px 0}
+.graph-captures figure{min-width:0;margin:0}
+.graph-captures figure:first-child{grid-row:span 2}
+.trace-tree{zoom:var(--graph-scale,1)}
+.trace-tree{background:#f5f8fc;padding:14px;width:max-content;min-width:100%;line-height:1.4}
+.trace-tree ul{list-style:none;margin:0;padding:0}
+.trace-tree li{position:relative;padding-top:5px;scroll-margin:12px}
+.trace-tree li ul{padding-left:22px;margin-left:12px}
+.trace-tree li li::before{content:"";position:absolute;left:-22px;top:0;width:21px;height:22px;border-left:2px solid #859bb2;border-bottom:2px solid #859bb2}
+.trace-tree li li:not(:last-child)::after{content:"";position:absolute;left:-22px;top:22px;bottom:0;border-left:2px solid #859bb2}
+.trace-node{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:4px 9px;border:1px solid #a8bacb;border-radius:6px;background:#fff;color:#142c42;text-decoration:none;font-weight:650}
+.trace-node:hover,.trace-node:focus{border-color:#24749a;background:#e7f3fb}
+.trace-observation{margin:0}
+.trace-node::before{content:"▸";color:#516477}
+.trace-observation[open]>.trace-node::before{content:"▾"}
+.span-ids{margin:5px 0 0 10px;color:#455a70;font-size:.85rem}
+.trace-type{font-size:.74rem;font-weight:750;padding:2px 5px;border-radius:4px;background:#e8eef4;color:#41566d}
+.trace-type[data-type="CHAIN"]{background:#f8e4f1;color:#8a1764}
+.trace-type[data-type="AGENT"]{background:#efe7fa;color:#592583}
+.trace-type[data-type="TOOL"]{background:#ffeddd;color:#8a450b}
+.trace-type[data-type="GENERATION"]{background:#fce7ee;color:#89234d}
+figcaption{margin-top:8px;color:#455a70;font-size:.9rem}
+.timing-row{display:grid;grid-template-columns:minmax(95px,1fr) minmax(55px,1.3fr) max-content;gap:8px;align-items:center;margin:7px 0;font-size:.77rem}
+.track{height:12px;background:#e3ebf3;border-radius:4px;position:relative}
+.track span{display:block;position:absolute;top:0;height:100%;border-radius:4px;background:#24768f;min-width:2px}
+.timing-row:last-child .track span{background:#4262a0}
+footer{border-top:1px solid #cbd8e3;padding:15px 0 28px}
+[hidden]{display:none!important}
+@media(max-width:900px){.workspace,.run-summary,.graph-captures{grid-template-columns:1fr}.platform-flow{grid-template-columns:repeat(2,minmax(0,1fr))}.graph-captures figure:first-child{grid-row:auto}.inspector{position:static;max-height:none;overflow:visible}.scenario-flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:580px){.media,.branches{grid-template-columns:1fr}.graph{padding:9px}dl{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="shell"><p class="overline">本機 AgentOS · PAY-482</p><h1>從工單走到送審</h1><p>以下圖表與截圖來自先前保存的執行，未反映後續加入的 Orchestrator 和驗證步驟。最新流程請參考共用 Workflow 定義與 Backstage。</p><a href="#langfuse-graph">查看 Langfuse Graph ↓</a></div></header>
+<main>
+  <section aria-labelledby="platform-title">
+    <h2 id="platform-title">整體平台架構</h2>
+    <p>平台以 Agno AgentOS 執行 Agent、Team 和 Workflow。Backstage 提供目錄入口，LibreChat 提供對話介面，Langfuse 記錄執行觀測資料。</p>
+    <div class="platform-flow">
+      <article><h3>Backstage · 目錄</h3><p>查詢 26 個 Agent、3 個 Team、14 個 Skill 與 2 個 Workflow；Agent 頁的 Relations 圖顯示可能的前後序、Team 成員和 Skill 依賴。</p></article>
+      <article><h3>LibreChat · 對話</h3><p>選擇 Agent 或 Team 發送文字。Gateway 轉換請求，並依使用者、對話與目標建立 AgentOS session。</p></article>
+      <article><h3>AgentOS · 執行</h3><p>保存並執行 Agent、Team 和 Workflow 定義。PAY-482 透過證據判斷、委派、並行提案與人工審查完成示範。</p></article>
+      <article><h3>Langfuse · 觀測</h3><p>接收 AgentOS 的 OpenTelemetry 資料，可用 Tree、Graph 和 Timeline 檢視呼叫與耗時。</p></article>
+    </div>
+    <div class="story">
+      <h3>資料如何流動</h3>
+      <p>Agent、Team、Skill 與 Workflow 定義檔 → Python 部署流程驗證並建立版本快照 → 同一版本產生 AgentOS 設定、Backstage Catalog 與 LibreChat 選單 → Gateway 呼叫 AgentOS → AgentOS 傳送 Trace 給 Langfuse。</p>
+      <p>Backstage 關係圖由靜態 Workflow 定義推導可能交接，dependsOn 指向前序或使用的 Skill；Team 代表可委派成員。下方互動圖與 Langfuse 實拍呈現先前保存的 PAY-482 執行資料，不能視為目前定義版本已重新執行的證明。</p>
+    </div>
+    <div class="table-scroll"><table aria-label="Docker 服務與資料"><thead><tr><th>服務</th><th>用途</th><th>資料</th></tr></thead><tbody>
+      <tr><th>Backstage / PostgreSQL</th><td>Agent、Team、Skill、Workflow 目錄及可能交接</td><td>Catalog 由版本化定義檔匯出，資料庫保存在專用 volume。</td></tr>
+      <tr><th>LibreChat / MongoDB</th><td>登入、選擇 Agent 或 Team、文字對話</td><td>帳號與對話保存在專用 volume。</td></tr>
+      <tr><th>Agno Gateway</th><td>把 LibreChat 的 Chat Completions 請求轉換為 AgentOS 請求</td><td>每次請求附上文字歷史，AgentOS 憑證由伺服器保管。</td></tr>
+      <tr><th>AgentOS / PostgreSQL</th><td>執行並保存 Agent、Team 與 Workflow 的狀態</td><td>沿用現有資料庫。</td></tr>
+      <tr><th>Langfuse / ClickHouse / PostgreSQL / Redis / 物件儲存</th><td>執行觀測與追蹤</td><td>沿用現有 Langfuse 資料。</td></tr>
+    </tbody></table></div>
+    <p class="notice">Gateway 支援文字，回覆完成後再傳送。Backstage 顯示靜態定義關係；實際委派、執行次序及結果應查看 Langfuse。送審前會檢查必要 Agent 步驟，失敗或缺少結果時回傳 UNKNOWN。定義部署可驗證、建立本機快照及回滾，但不回滾程式碼或資料庫。</p>
+  </section>
+  <section aria-labelledby="scenario-title">
+    <h2 id="scenario-title">PAY-482 案例</h2>
+    <div class="story">
+      <p>付款供應商送出 webhook。帳務服務完成入帳，但回應途中逾時。供應商用相同事件 ID 重送，系統若再寫一筆，帳上就會出現重複入帳。修補目標是讓同一事件只入帳一次，同時保留不同事件各自入帳的行為。</p>
+      <div class="scenario-flow">
+        <div><strong>首次送達</strong>事件 <code>event-1</code> 完成入帳。</div>
+        <div><strong>回應逾時</strong>供應商未收到確認。</div>
+        <div><strong>同事件重送</strong>再次收到 <code>event-1</code>。</div>
+        <div><strong>預期結果</strong>只保留原本一筆入帳，<code>event-2</code> 仍可新入帳。</div>
+      </div>
+      <p><strong>證據範圍</strong>　付款服務、CI、版本及核准是本機示範資料。實際執行的是記憶體帳本的兩項 unittest，以及 AgentOS 模型呼叫與 Workflow。兩項測試覆蓋順序重送及不同事件；併發、交易資料庫、簽章及正式發布仍待驗證。</p>
+    </div>
+    <div class="table-scroll"><table aria-label="四種交付情境"><thead><tr><th>情境</th><th>送入 Gate 的條件</th><th>路徑</th></tr></thead><tbody>
+      <tr><th>ready</th><td>模擬候選與受測版本皆為 a1b2c3d，本機測試通過。</td><td>專家規劃、平行建議、Reviewer 與風險整理，最後等待人工審查。</td></tr>
+      <tr><th>stale</th><td>模擬 CI 綠燈對應 f0e1d2c，候選為 a1b2c3d。</td><td>NOT READY，需對當前版本補跑。</td></tr>
+      <tr><th>timeout</th><td>模擬 CI 查詢逾時，缺少可用的 CI 結果。</td><td>UNKNOWN，等待補證。</td></tr>
+      <tr><th>fail</th><td>模擬併發重送檢查得到兩筆入帳；本機順序單測仍通過。</td><td>NOT READY，需修正後重新執行。</td></tr>
+    </tbody></table></div>
+  </section>
+  <section aria-labelledby="relations-title">
+    <h2 id="relations-title">Agent 怎麼交接</h2>
+    <div class="table-scroll"><table aria-label="Agent 交接關係"><thead><tr><th>關係</th><th>在交付 Workflow 的位置</th><th>交付的內容</th></tr></thead><tbody>
+      <tr><th>1 → 1</th><td>Planner → Architect，Reviewer → Risk &amp; Approval</td><td>上一站結果成為下一站輸入。</td></tr>
+      <tr><th>1 → 4 → 1</th><td>Knowledge Team → Knowledge、Research、Memory、Context → Team</td><td>Leader 發出不同問題，彙整成給 Planner 的摘要。</td></tr>
+      <tr><th>1 → 3 → 1</th><td>Architect → Coder、Infrastructure、Integration → Reviewer</td><td>Agno Parallel 分送同一份設計，等三支線輸出後匯入審查。</td></tr>
+      <tr><th>多對多</th><td>Team 成員 → Team 摘要 → Planner 與 Architect → 三位專家</td><td>多位成員的內容透過摘要和設計間接影響多個下游；三位專家之間沒有直接連線。</td></tr>
+    </tbody></table></div>
+    $evidence
+  </section>
+  <section aria-labelledby="runs-title">
+    <h2 id="runs-title">同一張圖走讀不同執行</h2>
+    <p>選擇情境，再選取圖中的 Agent、Team 或判斷節點。綠色表示有完成的步驟紀錄，灰色表示本次未執行，紅色表示觀測到失敗。箭頭表示資料或控制交接。Team 內的成員次數來自 Langfuse。</p>
+    <nav class="switch" aria-label="選擇執行情境">$tabs</nav>
+    $runs
+  </section>
+  <section aria-labelledby="langfuse-graph">
+    <h2 id="langfuse-graph">Langfuse Graph · PAY-482 ready</h2>
+    <p>原生 Graph 的 Aggregated 檢視會合併同名呼叫。下方截圖展示三個區段，完整節點名稱及父子關係可在 Trace 呼叫圖中查看。</p>
+    $graph_captures
+    $trace_graph
+  </section>
+  <section aria-labelledby="capture-title">
+    <h2 id="capture-title">Langfuse Trace 與 Agent UI</h2>
+    <p>以下是 ready 情境的實際操作截圖。截圖和執行資料皆內嵌在報告中，可離線閱覽。</p>
+    $comparison
+    $media
+  </section>
+  <footer class="subtle">執行紀錄來自本機 AgentOS API，委派與輸入來自對應 Langfuse Trace。</footer>
+</main>
+<script>
+const tabs=[...document.querySelectorAll('[data-view]')];
+const runs=[...document.querySelectorAll('[data-run]')];
+function selectNode(run,key,move){
+  const detail=[...run.querySelectorAll('[data-node-detail]')].find(item=>item.dataset.nodeDetail===key);
+  if(!detail)return;
+  run.querySelectorAll('[data-node-detail]').forEach(item=>item.hidden=item!==detail);
+  run.querySelectorAll('[data-node]').forEach(item=>item.setAttribute('aria-current',String(item.dataset.node===key)));
+  if(move && window.matchMedia('(max-width: 900px)').matches){
+    detail.scrollIntoView({block:'start'});
+    detail.tabIndex=-1;
+    detail.focus({preventScroll:true});
+  }
+}
+function selectRun(key){
+  const run=runs.find(item=>item.dataset.run===key);
+  if(!run)return;
+  runs.forEach(item=>item.hidden=item!==run);
+  tabs.forEach(item=>item.setAttribute('aria-current',String(item.dataset.view===key)));
+  const first=run.querySelector('[data-node]');
+  if(first)selectNode(run,first.dataset.node,false);
+}
+tabs.forEach(tab=>tab.addEventListener('click',event=>{
+  event.preventDefault();
+  selectRun(tab.dataset.view);
+}));
+runs.forEach(run=>run.querySelectorAll('[data-node]').forEach(node=>node.addEventListener('click',event=>{
+  event.preventDefault();
+  selectNode(run,node.dataset.node,true);
+})));
+if(tabs.length)selectRun(tabs[0].dataset.view);
+
+document.querySelectorAll('.zoomable').forEach(panel=>{
+  const viewport=panel.querySelector('.graph-viewport');
+  const controls=panel.querySelector('.zoom-controls');
+  const level=controls.querySelector('output');
+  const zoomOut=controls.querySelector('[data-zoom="-25"]');
+  const zoomIn=controls.querySelector('[data-zoom="25"]');
+  const min=75;
+  const max=250;
+  let percent=100;
+  controls.hidden=false;
+  controls.querySelectorAll('[data-zoom]').forEach(button=>button.addEventListener('click',()=>{
+    const step=button.dataset.zoom;
+    const next=step==='reset'?100:percent+Number(step);
+    const ratio=next/percent;
+    const {scrollTop,scrollLeft}=viewport;
+    percent=next;
+    viewport.style.setProperty('--graph-scale',percent/100);
+    viewport.scrollTo(scrollLeft*ratio,scrollTop*ratio);
+    level.value=percent+'%';
+    zoomOut.disabled=percent<=min;
+    zoomIn.disabled=percent>=max;
+  }));
+});
+
+document.querySelectorAll('.trace-jumps a').forEach(link=>link.addEventListener('click',event=>{
+  const node=document.getElementById(link.hash.slice(1)).querySelector('summary');
+  const viewport=node.closest('.graph-viewport');
+  const area=viewport.getBoundingClientRect();
+  const bounds=node.getBoundingClientRect();
+  event.preventDefault();
+  viewport.scrollBy({
+    top:bounds.top-area.top-12,
+    left:Math.min(0,bounds.left-area.left-12)+Math.max(0,bounds.right-area.right+12)
+  });
+  node.focus({preventScroll:true});
+}));
+</script>
+</body>
+</html>

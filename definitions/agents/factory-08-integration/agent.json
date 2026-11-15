@@ -1,0 +1,12 @@
+{
+  "id": "factory-08",
+  "name": "Integration",
+  "group": "主線",
+  "summary": "檢查服務介面、事件識別與回應契約。",
+  "skills": [
+    "webhook-contract",
+    "webhook-security"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "契約檢查、資料流、重送語意、缺口"
+}

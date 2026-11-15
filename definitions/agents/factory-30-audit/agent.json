@@ -1,0 +1,12 @@
+{
+  "id": "factory-30",
+  "name": "Audit",
+  "group": "觀測",
+  "summary": "檢查授權與證據缺口，不推定模擬核准為真人核准。",
+  "skills": [
+    "audit",
+    "evidence-review"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "可追溯紀錄、授權、缺口及待查事項"
+}

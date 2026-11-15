@@ -1,0 +1,12 @@
+{
+  "id": "factory-20",
+  "name": "Reliability",
+  "group": "驗證",
+  "summary": "解讀工作項目的失敗模式，提出可靠度與復原驗證。",
+  "skills": [
+    "payment-testing",
+    "root-cause-analysis"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "失敗模式、影響、復原與驗證方案"
+}

@@ -1,0 +1,11 @@
+{
+  "scenario": "software-delivery-with-pay-482-work-item",
+  "version": 2,
+  "cases": [
+    {"id": "stale", "message": "{\"work_id\":\"PAY-482\",\"scenario\":\"stale\"}", "expected": "NOT READY"},
+    {"id": "timeout", "message": "{\"work_id\":\"PAY-482\",\"scenario\":\"timeout\"}", "expected": "UNKNOWN"},
+    {"id": "fail", "message": "{\"work_id\":\"PAY-482\",\"scenario\":\"fail\"}", "expected": "NOT READY"},
+    {"id": "ready", "message": "{\"work_id\":\"PAY-482\",\"scenario\":\"ready\"}", "expected": "READY_FOR_HUMAN_REVIEW"}
+  ],
+  "invariants": ["released is false", "failed or missing required steps return UNKNOWN"]
+}

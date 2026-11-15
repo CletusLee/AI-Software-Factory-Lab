@@ -1,0 +1,12 @@
+{
+  "id": "factory-01",
+  "name": "Orchestrator",
+  "group": "主線",
+  "summary": "根據既有證據安排交接與測試失敗後的回流。",
+  "skills": [
+    "delivery-planning",
+    "evidence-review"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "狀態、下一步、負責角色、阻塞與回流條件"
+}

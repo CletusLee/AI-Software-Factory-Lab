@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Factory POC benchmark result",
+  "type": "object",
+  "required": ["poc", "platform_version", "definition_revision", "scenario_version", "model", "cases"],
+  "properties": {
+    "poc": {"type": "string"},
+    "platform_version": {"type": "string"},
+    "definition_revision": {"type": "string"},
+    "scenario_version": {"type": "string"},
+    "model": {"type": "string"},
+    "model_parameters": {"type": "object"},
+    "cases": {"type": "array", "items": {
+      "type": "object",
+      "required": ["id", "expected", "actual", "execution_status"],
+      "properties": {
+        "id": {"type": "string"},
+        "expected": {"type": "string"},
+        "actual": {"type": "string"},
+        "execution_status": {"type": "string"},
+        "duration_seconds": {"type": ["number", "null"], "minimum": 0},
+        "tokens": {"type": ["integer", "null"], "minimum": 0},
+        "evidence_ref": {"type": ["string", "null"]}
+      }
+    }}
+  }
+}

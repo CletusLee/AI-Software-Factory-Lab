@@ -1,0 +1,11 @@
+{
+  "id": "factory-12",
+  "name": "Research",
+  "group": "知識",
+  "summary": "確認事故影響、需求與仍需 Domain Owner 確認的未知項。",
+  "skills": [
+    "evidence-review"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "需求與影響、證據、假設、待 Domain Owner 確認事項"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "factory-24",
+  "name": "Risk & Approval",
+  "group": "治理",
+  "summary": "整理人工審查清單及待確認事項，不替人核准。",
+  "skills": [
+    "audit",
+    "delivery-planning"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "風險清單、缺證、待決事項與人工審查人"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "factory-21",
+  "name": "Observability",
+  "group": "觀測",
+  "summary": "說明如何從 Trace、測試及工單資料診斷。",
+  "skills": [
+    "trace-diagnosis",
+    "evidence-review"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "觀測摘要、trace 證據、異常及未知"
+}

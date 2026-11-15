@@ -1,0 +1,17 @@
+{
+  "description": "參考架構中的側向支援、失敗回流與人工核准後步驟。屬設計關係，實際執行以 Workflow 與 Trace 為準。",
+  "relationships": [
+    {"source": "factory-12", "target": "factory-02", "kind": "support", "description": "Research 向 Planner 提供需求脈絡"},
+    {"source": "factory-15", "target": "factory-03", "kind": "support", "description": "Memory 向 Architect 提供 ADR 脈絡"},
+    {"source": "factory-14", "target": "factory-04", "kind": "support", "description": "Context 向實作提供介面脈絡"},
+    {"source": "factory-14", "target": "factory-06", "kind": "support", "description": "Context 向基礎設施工作提供脈絡"},
+    {"source": "factory-14", "target": "factory-08", "kind": "support", "description": "Context 向介接工作提供脈絡"},
+    {"source": "factory-09", "target": "factory-01", "kind": "failure-feedback", "description": "驗證失敗時重新派工"},
+    {"source": "factory-11", "target": "factory-01", "kind": "failure-feedback", "description": "驗證失敗時重新派工"},
+    {"source": "factory-20", "target": "factory-01", "kind": "failure-feedback", "description": "驗證失敗時重新派工"},
+    {"source": "factory-10", "target": "factory-04", "kind": "failure-feedback", "description": "Review 失敗後返回修正"},
+    {"source": "factory-24", "target": "factory-22", "kind": "after-human-approval", "description": "人工核准後準備發布"},
+    {"source": "factory-22", "target": "factory-13", "kind": "post-release", "description": "發布後整理文件"},
+    {"source": "factory-13", "target": "factory-25", "kind": "knowledge-feedback", "description": "文件回寫並形成知識入庫"}
+  ]
+}

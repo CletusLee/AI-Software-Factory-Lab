@@ -1,0 +1,63 @@
+# Credentials and local configuration
+.env
+.env.*
+*.env
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+*.key
+*-credentials.yaml
+
+# Python and JavaScript dependencies and caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+node_modules/
+.pnp.*
+.cache/
+
+# Backstage dependencies and build output
+pocs/*/backstage/.yarn/*
+!pocs/*/backstage/.yarn/releases/
+!pocs/*/backstage/.yarn/releases/**
+!pocs/*/backstage/.yarn/patches/
+!pocs/*/backstage/.yarn/patches/**
+!pocs/*/backstage/.yarn/plugins/
+!pocs/*/backstage/.yarn/plugins/**
+!pocs/*/backstage/.yarn/versions/
+!pocs/*/backstage/.yarn/versions/**
+**/backstage/packages/*/dist/
+**/backstage/packages/*/dist-types/
+**/backstage/plugins/*/dist/
+**/backstage/*.local.yaml
+
+# Generated catalog, demos, traces, captures and videos
+**/demo-report.html
+**/integration/catalog/
+**/deployment/active.txt
+**/deployment/last-good.txt
+**/deployment/releases/*
+!**/deployment/releases/.gitkeep
+**/deployment/.deploy.lock/
+**/swarm-output/*
+!**/swarm-output/.gitkeep
+
+# Local downloads, scaffold history and developer state
+**/integration/LibreChat/
+**/integration/tools/
+**/integration/backstage-scaffold-git-backup/
+.serena/
+
+# Logs, coverage and editor files
+*.log
+coverage/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

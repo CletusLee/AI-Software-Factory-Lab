@@ -1,0 +1,127 @@
+{
+  "id": "software-delivery",
+  "name": "Software Delivery",
+  "description": "跨 POC 的預先定義交付流程；工作項目提供範圍、變更候選與驗收命令。先在隔離工作目錄實際套用變更並執行測試，通過後才進入平行驗證與人工審查。",
+  "steps": [
+    {
+      "name": "Evidence Gate",
+      "type": "executor",
+      "ref": "evidence_gate"
+    },
+    {
+      "name": "Readiness",
+      "type": "condition",
+      "ref": "is_ready",
+      "steps": [
+        {
+          "name": "Knowledge",
+          "type": "team",
+          "ref": "knowledge-team"
+        },
+        {
+          "name": "Plan",
+          "type": "agent",
+          "ref": "factory-02"
+        },
+        {
+          "name": "Orchestrate",
+          "type": "agent",
+          "ref": "factory-01"
+        },
+        {
+          "name": "Design",
+          "type": "agent",
+          "ref": "factory-03"
+        },
+        {
+          "name": "Parallel Proposals",
+          "type": "parallel",
+          "steps": [
+            {
+              "name": "Code Proposal",
+              "type": "agent",
+              "ref": "factory-04"
+            },
+            {
+              "name": "Infrastructure Proposal",
+              "type": "agent",
+              "ref": "factory-06"
+            },
+            {
+              "name": "Integration Proposal",
+              "type": "agent",
+              "ref": "factory-08"
+            }
+          ]
+        },
+        {
+          "name": "Apply Candidate Change",
+          "type": "executor",
+          "ref": "apply_candidate_change"
+        },
+        {
+          "name": "Candidate Verification",
+          "type": "executor",
+          "ref": "verify_candidate"
+        },
+        {
+          "name": "Candidate Tests Pass",
+          "type": "condition",
+          "ref": "candidate_passed",
+          "steps": [
+            {
+              "name": "Parallel Verification",
+              "type": "parallel",
+              "steps": [
+                {
+                  "name": "Testing",
+                  "type": "agent",
+                  "ref": "factory-09"
+                },
+                {
+                  "name": "Security",
+                  "type": "agent",
+                  "ref": "factory-11"
+                },
+                {
+                  "name": "Reliability",
+                  "type": "agent",
+                  "ref": "factory-20"
+                }
+              ]
+            },
+            {
+              "name": "Review",
+              "type": "agent",
+              "ref": "factory-10"
+            },
+            {
+              "name": "Risk Summary",
+              "type": "agent",
+              "ref": "factory-24"
+            },
+            {
+              "name": "Human Review Pending",
+              "type": "executor",
+              "ref": "pending_approval"
+            }
+          ],
+          "else_steps": [
+            {
+              "name": "Needs Rework",
+              "type": "executor",
+              "ref": "blocked_result"
+            }
+          ]
+        }
+      ],
+      "else_steps": [
+        {
+          "name": "Needs Evidence or Rework",
+          "type": "executor",
+          "ref": "blocked_result"
+        }
+      ]
+    }
+  ]
+}

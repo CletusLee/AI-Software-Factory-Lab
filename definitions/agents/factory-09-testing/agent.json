@@ -1,0 +1,12 @@
+{
+  "id": "factory-09",
+  "name": "Testing",
+  "group": "驗證",
+  "summary": "審查實際驗收測試結果並找出測試覆蓋缺口。",
+  "skills": [
+    "payment-testing",
+    "evidence-review"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "已執行結果、覆蓋缺口、測試案例及預期"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "factory-14",
+  "name": "Context",
+  "group": "知識",
+  "summary": "整理工作項目涉及領域與服務介面的必要上下文。",
+  "skills": [
+    "webhook-contract",
+    "evidence-review"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "上下文、資料流、契約、來源及未知"
+}

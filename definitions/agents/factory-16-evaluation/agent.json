@@ -1,0 +1,11 @@
+{
+  "id": "factory-16",
+  "name": "Evaluation",
+  "group": "觀測",
+  "summary": "設計 READY、NOT READY、UNKNOWN 的評估和預期結果。",
+  "skills": [
+    "evaluation-benchmark"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "測試集、預期、評估規則、實際資料與缺口"
+}

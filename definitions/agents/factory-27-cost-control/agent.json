@@ -1,0 +1,11 @@
+{
+  "id": "factory-27",
+  "name": "Cost Control",
+  "group": "觀測",
+  "summary": "提出本次模型用量與配額紀錄方式，不假稱已設定閘道。",
+  "skills": [
+    "model-usage-cost"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "使用量、成本依據、限制、未知與建議"
+}

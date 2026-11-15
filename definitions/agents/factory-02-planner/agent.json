@@ -1,0 +1,11 @@
+{
+  "id": "factory-02",
+  "name": "Planner",
+  "group": "主線",
+  "summary": "拆分工作項目的實作與驗證工作，列出依賴。",
+  "skills": [
+    "delivery-planning"
+  ],
+  "inputs": "工作項目證據與前序步驟輸出",
+  "outputs": "工作項目、前置依賴、驗收條件、未知與交接對象"
+}
