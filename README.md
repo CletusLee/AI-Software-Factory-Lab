@@ -50,4 +50,18 @@ The reference design also includes Research support for Planner, Memory support 
 
 Run `python tools/validate_definitions.py` from the repository root to validate shared definition IDs and references.
 
-The current POC is [Agno AI Factory](pocs/agno/README.md).
+## POC implementations
+
+The repository includes three independent implementations of the shared AI Software Factory definitions. Each POC loads the repository's `definitions/`, `scenarios/`, and `benchmark/`, while keeping its own Compose project, credentials, data volumes, and generated run records. Initialize each POC's `.env` as described in its guide before starting it.
+
+| POC | Runtime and tracing | Quick start from the repository root | Main local services | Guide |
+| --- | --- | --- | --- | --- |
+| Agno baseline | Agno AgentOS; Langfuse tracing | `Set-Location pocs/agno; docker compose build agentos backstage agent-ui; docker compose up -d` | AgentOS `:7777`, Agent UI `:3000`, LibreChat `:3080`, Backstage `:7007`, Langfuse `:3001`, report `:7778/report` | [Agno POC README](pocs/agno/README.md) |
+| Agno + Grafana Tempo | Independent Agno AgentOS POC; OpenTelemetry OTLP/HTTP to Tempo; Grafana Explore | `Set-Location pocs/agno-tempo; docker compose -p agno-factory-tempo build agentos backstage agent-ui; docker compose -p agno-factory-tempo up -d` | AgentOS `:7877`, Agent UI `:3010`, LibreChat `:3090`, Backstage `:7107`, Grafana `:3002`, report `:7878/report` | [Agno + Tempo POC README](pocs/agno-tempo/README.md) |
+| CrewAI | CrewAI API; optional Langfuse observability | `Set-Location pocs/crewai; docker compose up -d --build crewai-api` | API `:7790`; optional LibreChat `:3081`, Backstage `:7008`, Langfuse `:3002` | [CrewAI POC README](pocs/crewai/README.md) |
+
+The Agno + Tempo POC is a separate variant of the Agno baseline: it preserves the Langfuse POC and sends its own OpenTelemetry traces to a local Tempo instance. Tempo uses local block storage, so this POC does not require MinIO. Its [Grafana Explore guide and verified trace link](pocs/agno-tempo/README.md#grafana-tempo-trace) explain how to inspect workflow spans.
+
+CrewAI starts only its API by default. LibreChat, Backstage, and Langfuse are optional Compose profiles; see the [CrewAI guide](pocs/crewai/README.md#optional-independent-services) to start them. CrewAI's optional Langfuse service and Agno + Tempo's Grafana both default to host port `3002`; change `CREWAI_LANGFUSE_PORT` in `pocs/crewai/.env` if you need both observability UIs running at the same time.
+
+All three implementations are local POCs. PAY-482 ticket state, CI, source control, and approval are simulated; candidate changes run in per-execution workspaces and do not update or deploy the product source. The POC-specific README files document setup, workflows, endpoints, tracing, results, and limitations.

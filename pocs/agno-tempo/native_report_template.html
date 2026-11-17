@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PAY-482 · Agno Tempo Workflow 報告</title>
+  <style>
+    :root { color-scheme: light; font: 15px/1.6 Inter, "Microsoft JhengHei", sans-serif; color: #15263b; background: #edf2f7; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header { padding: 28px max(20px, calc((100vw - 1120px) / 2)); background: #15334d; color: #f3f8fc; }
+    header p { margin: 7px 0; color: #d3e3ef; }
+    main { max-width: 1120px; margin: 24px auto; padding: 0 20px; }
+    .case { margin: 16px 0; padding: 20px; border: 1px solid #cfdae5; border-radius: 10px; background: white; box-shadow: 0 5px 20px #16344d0c; }
+    h1, h2 { margin-top: 0; }
+    h2 { font-size: 1.25rem; color: #173d5b; }
+    dl { display: grid; grid-template-columns: 130px 1fr; gap: 5px 12px; margin: 0 0 14px; }
+    dt { color: #52677d; }
+    dd { margin: 0; overflow-wrap: anywhere; }
+    a { color: #086b9a; }
+    code, pre { font-family: "Cascadia Code", Consolas, monospace; }
+    code { overflow-wrap: anywhere; }
+    pre { max-height: 480px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px; border-radius: 6px; background: #f2f5f8; }
+    details { margin-top: 10px; }
+    summary { cursor: pointer; font-weight: 650; }
+    .step summary { display: flex; justify-content: space-between; gap: 12px; padding-left: calc(var(--depth, 0) * 16px); }
+    .step b { color: #34516a; }
+    .muted, footer { color: #62758a; }
+    footer { max-width: 1120px; margin: 32px auto; padding: 0 20px; font-size: .9rem; }
+    @media (max-width: 600px) { dl { grid-template-columns: 1fr; gap: 0; } dd { margin-bottom: 8px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Agno AgentOS · PAY-482</h1>
+    <p>$summary</p>
+    <p>產生時間 $generated_at</p>
+    <p>從情境卡片複製 trace ID，再於 Grafana Explore 選擇 Tempo 並查詢。Workflow 步驟結果來自 AgentOS run。</p>
+  </header>
+  <main>
+    $runs
+  </main>
+  <footer>PAY-482 的工作項目、CI、SPEC、Oracle 與審核者均為本機模擬資料。請以原始證據進行獨立核對。</footer>
+</body>
+</html>

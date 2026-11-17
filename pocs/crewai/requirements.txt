@@ -1,0 +1,9 @@
+crewai[litellm]==1.15.41
+fastapi==0.121.2
+uvicorn[standard]==0.38.0
+requests==2.32.5
+jsonschema==4.25.1
+python-multipart==0.0.20
+openinference-instrumentation-crewai==0.1.20
+opentelemetry-sdk==1.45.1
+opentelemetry-exporter-otlp-proto-http==1.45.1

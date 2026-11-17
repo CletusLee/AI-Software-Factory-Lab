@@ -47,6 +47,8 @@ pocs/*/backstage/.yarn/*
 **/deployment/.deploy.lock/
 **/swarm-output/*
 !**/swarm-output/.gitkeep
+**/crewai/data/*
+!**/crewai/data/.gitkeep
 
 # Local downloads, scaffold history and developer state
 **/integration/LibreChat/

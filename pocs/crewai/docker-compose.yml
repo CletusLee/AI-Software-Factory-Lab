@@ -1,0 +1,262 @@
+name: factory-crewai
+
+services:
+  crewai-api:
+    build: .
+    env_file: .env
+    environment:
+      MODEL_ID: ${MODEL_ID:?Set MODEL_ID in pocs/crewai/.env}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:?Set OPENAI_BASE_URL in pocs/crewai/.env}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY in pocs/crewai/.env}
+      CREWAI_API_KEY: ${CREWAI_API_KEY:?Set CREWAI_API_KEY in pocs/crewai/.env}
+      LANGFUSE_OTEL_ENDPOINT: ${LANGFUSE_OTEL_ENDPOINT:-}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      SCENARIO_ROOT: /app/scenarios
+      WORKSPACE_ROOT: /app/data/workspaces
+      RUN_ROOT: /app/data/runs
+      CREWAI_URL: http://127.0.0.1:8080
+    ports:
+      - "127.0.0.1:${CREWAI_API_PORT:-7790}:8080"
+    volumes:
+      - ../../definitions:/app/definitions:ro
+      - ../../scenarios:/app/scenarios:ro
+      - ../../benchmark:/app/benchmark:ro
+      - ./data:/app/data
+      - ./integration/catalog:/app/integration/catalog
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [crewai-net]
+
+  librechat-mongodb:
+    image: mongo:8.0.20
+    profiles: [ui]
+    volumes:
+      - librechat_mongo:/data/db
+    networks: [crewai-net]
+
+  librechat:
+    image: registry.librechat.ai/librechat-ai/librechat-dev:latest
+    profiles: [ui]
+    ports:
+      - "127.0.0.1:${CREWAI_LIBRECHAT_PORT:-3081}:3080"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3080"
+      MONGO_URI: mongodb://librechat-mongodb:27017/LibreChat
+      DOMAIN_CLIENT: http://localhost:${CREWAI_LIBRECHAT_PORT:-3081}
+      DOMAIN_SERVER: http://localhost:${CREWAI_LIBRECHAT_PORT:-3081}
+      JWT_SECRET: ${CREWAI_LIBRECHAT_JWT_SECRET:?Set CREWAI_LIBRECHAT_JWT_SECRET}
+      JWT_REFRESH_SECRET: ${CREWAI_LIBRECHAT_REFRESH_SECRET:?Set CREWAI_LIBRECHAT_REFRESH_SECRET}
+      CREDS_KEY: ${CREWAI_LIBRECHAT_CREDS_KEY:?Set CREWAI_LIBRECHAT_CREDS_KEY}
+      CREDS_IV: ${CREWAI_LIBRECHAT_CREDS_IV:?Set CREWAI_LIBRECHAT_CREDS_IV}
+      CREWAI_API_KEY: ${CREWAI_API_KEY:?Set CREWAI_API_KEY}
+      ALLOW_REGISTRATION: "true"
+      ALLOW_EMAIL_LOGIN: "true"
+      ALLOW_UNVERIFIED_EMAIL_LOGIN: "true"
+      SEARCH: "false"
+      SCHEDULES_SINGLE_PROCESS: "true"
+    volumes:
+      - ./integration/librechat.yaml:/app/librechat.yaml:ro
+      - librechat_data:/app/data
+      - librechat_uploads:/app/uploads
+      - librechat_images:/app/client/public/images
+    depends_on:
+      librechat-mongodb:
+        condition: service_started
+      crewai-api:
+        condition: service_healthy
+    networks: [crewai-net]
+
+  backstage-db:
+    image: postgres:16-alpine
+    profiles: [catalog]
+    environment:
+      POSTGRES_USER: backstage
+      POSTGRES_PASSWORD: ${CREWAI_BACKSTAGE_DB_PASSWORD:?Set CREWAI_BACKSTAGE_DB_PASSWORD}
+      POSTGRES_DB: backstage
+    volumes:
+      - backstage_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U backstage -d backstage"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [crewai-net]
+
+  catalog-export:
+    build: .
+    profiles: [catalog]
+    command: ["python", "-m", "integration.export_catalog"]
+    environment:
+      FACTORY_DEFINITIONS: /app/definitions
+    volumes:
+      - ../../definitions:/app/definitions:ro
+      - ./data:/app/data:ro
+      - ./integration/catalog:/app/integration/catalog
+    networks: [crewai-net]
+
+  backstage:
+    build:
+      context: ./backstage
+    profiles: [catalog]
+    ports:
+      - "127.0.0.1:${CREWAI_BACKSTAGE_PORT:-7008}:7007"
+    environment:
+      POSTGRES_HOST: backstage-db
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: backstage
+      POSTGRES_PASSWORD: ${CREWAI_BACKSTAGE_DB_PASSWORD:?Set CREWAI_BACKSTAGE_DB_PASSWORD}
+    volumes:
+      - ./integration/catalog:/catalog:ro
+      - ./backstage/app-config.production.yaml:/app/app-config.production.yaml:ro
+    depends_on:
+      backstage-db:
+        condition: service_healthy
+      catalog-export:
+        condition: service_completed_successfully
+    networks: [crewai-net]
+
+  langfuse-postgres:
+    image: postgres:16-alpine
+    profiles: [observability]
+    environment:
+      POSTGRES_DB: langfuse
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: langfuse
+    volumes:
+      - langfuse_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse -d langfuse"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [crewai-net]
+
+  langfuse-clickhouse:
+    image: clickhouse/clickhouse-server:24.8-alpine
+    profiles: [observability]
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse
+    volumes:
+      - langfuse_ch_data:/var/lib/clickhouse
+      - langfuse_ch_logs:/var/log/clickhouse-server
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8123/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [crewai-net]
+
+  langfuse-redis:
+    image: redis:7-alpine
+    profiles: [observability]
+    command: --requirepass myredissecret
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "myredissecret", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [crewai-net]
+
+  langfuse-minio:
+    image: pgsty/silo:RELEASE.2026-11-09T00-00-00Z
+    profiles: [observability]
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: miniosecret
+    volumes:
+      - langfuse_minio_data:/data
+    healthcheck:
+      test: ["CMD", "silo", "healthcheck", "ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [crewai-net]
+
+  minio-init:
+    image: pgsty/silo:RELEASE.2026-11-09T00-00-00Z
+    profiles: [observability]
+    depends_on:
+      langfuse-minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "set -e;
+      mcli alias set myminio http://langfuse-minio:9000 minio miniosecret;
+      mcli mb myminio/langfuse --ignore-existing;"
+    networks: [crewai-net]
+
+  langfuse-worker:
+    image: langfuse/langfuse-worker:3
+    profiles: [observability]
+    environment: &langfuse-env
+      DATABASE_URL: postgresql://langfuse:langfuse@langfuse-postgres:5432/langfuse
+      SALT: ${CREWAI_LANGFUSE_SALT:-crewai-local-development-salt}
+      ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+      NEXTAUTH_URL: http://localhost:${CREWAI_LANGFUSE_PORT:-3002}
+      NEXTAUTH_SECRET: ${CREWAI_LANGFUSE_NEXTAUTH_SECRET:-crewai-local-development-nextauth}
+      CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
+      CLICKHOUSE_URL: http://langfuse-clickhouse:8123
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      REDIS_HOST: langfuse-redis
+      REDIS_PORT: 6379
+      REDIS_AUTH: myredissecret
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: miniosecret
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+      TELEMETRY_ENABLED: "false"
+    depends_on:
+      langfuse-postgres:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    networks: [crewai-net]
+
+  langfuse-web:
+    image: langfuse/langfuse:3
+    profiles: [observability]
+    ports:
+      - "127.0.0.1:${CREWAI_LANGFUSE_PORT:-3002}:3000"
+    environment:
+      <<: *langfuse-env
+    depends_on:
+      langfuse-postgres:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    networks: [crewai-net]
+
+networks:
+  crewai-net:
+    driver: bridge
+
+volumes:
+  librechat_mongo:
+  librechat_data:
+  librechat_uploads:
+  librechat_images:
+  backstage_pgdata:
+  langfuse_pgdata:
+  langfuse_ch_data:
+  langfuse_ch_logs:
+  langfuse_minio_data:
