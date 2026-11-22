@@ -375,7 +375,13 @@ Workflow、Agent／Team 的上述窄版證據通過。新版 Docker UI 再以 37
 - [x] Runs 深連結：`view`、type、component、page、session、run 選取寫進 URL；Agent page 1／page 2 重載並重新授權後還原，原有 Chat `agent` 和 DB `db_id` 保留。
 - [x] 過期 Session 顯示 not-found 提示並保留清單供改選；過期 Run 顯示 AgentOS `404 Not Found` 和 Retry。有效 Run 可再選取。
 - [x] 1280px summary cards 改成兩欄且文字可讀；375px Runs summary 和 Agent Run data disclosures 可瀏覽，證據見本節上方截圖。
-- [ ] 斷線復原、跨 component／DB 深連結反例，以及有真實 Trace 時的 Run-to-Trace 正向關聯仍待驗。Run detail 導向精確 Trace run filter 已完成，結果為成功空資料；見上方 Observability 證據。
+
+#### F07 Runs isolated recovery and deep links
+
+- [x] 隔離 Docker fixture 的 Runs network recovery：synthetic `/sessions` 第一次 socket drop，same-origin UI proxy 顯示 `502 Bad Gateway` 與 Retry；按 Retry 後第二次回 `200` empty list，UI 轉成功空狀態。fixture 無 production Token、資料讀寫或模型呼叫。
+- [x] ChatGPT in-app browser 直接載入 Runs deep links：所選 DB 為 `fixture-db-slow-a`、`session_id=fixture-fast-b-result` 時，DB selector 保留 slow-a，清單顯示 `Slow A result` 並說明所選 session 不屬於目前 DB／頁面；`component_id=missing-agent` 時顯示 `Agent not found` 與選擇其他元件提示，不顯示 stale session/run detail。瀏覽器畫面已在工具輸出擷取並檢視；沒有受支援的 screenshot repo export API，故不新增圖檔。
+- [x] 上述深連結驗收到 Chat initialization 原會用 Chat component DB 覆寫 Runs 的 `db_id`。`useChatActions` 現在只在 Chat view／未指定 view 時套用 Chat component DB；Agent UI bind-mounted fixture 的重載與 DB deep link 驗收通過，容器內 `pnpm exec tsc --noEmit` 通過。修正已同步至 POC `agent-ui.patch`，尚未 build／deploy；production image 維持 `sha256:0a11f3…`。
+- [ ] 真實 Trace 存在時的 Run-to-Trace 正向關聯仍待驗。Run detail 導向精確 Trace run filter 已完成，結果為成功空資料；沒有真實配對 Trace，不用 synthetic span 代替。F07 非空 compaction 也仍待真實資料。詳見上方 Observability 證據。
 
 ## 已知缺口與下次接手
 

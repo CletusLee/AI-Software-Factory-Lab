@@ -9,6 +9,16 @@
 - [x] **F16 外部健康檢查隔離。** 另以臨時 Docker network 跑 bind-mounted UI 與 AgentOS mock，不連接 Langfuse／Gateway／Backstage；ChatGPT browser 顯示三個 health check 均 UNREACHABLE，外部 Retry 後只更新三項檢查時間。Deployment／components／revision／storage／registry 等成功 AgentOS 卡片維持載入。未碰 production／外部服務；browser screenshot 在工具輸出，沒有受支援的 repo 檔案匯出方式。
 - [x] **文件交接。** POC README 加入當前交付狀態；Agent UI repo README 更新功能、部署限制與 Token 行為，附上標明版本的歷史畫面。完整未完成項目以能力計畫為準。
 
+## F07 隔離驗收與 Runs 深連結修正（2026-11-22）
+
+- [x] 修正 `mock-agentos-fixture.mjs` 的 `/agents` 回應，使它與 `/config.agents` 一致提供 `fixture-agent`；先前 fixture 不一致會讓 Runs 將正確 component ID 當成不存在。
+- [x] ChatGPT in-app browser 載入 `fixture-db-drop-once` 的 Runs 深連結：第一次 `/sessions` socket drop 經 same-origin proxy 顯示 `502 Bad Gateway`／Retry；Retry 後 mock 回 `200` 空集合，UI 顯示成功空狀態。
+- [x] 載入 `fixture-db-slow-a` 並帶入只存在 `fixture-db-fast-b` 的 `fixture-fast-b-result` session ID：URL／selector 保留 slow-a，UI 顯示 Slow A result 清單與目前 DB／page 不存在該 session 的提示。載入不存在的 `missing-agent` component 時顯示 Agent not found，不顯示其他 component 的資料。
+- [x] 驗收時發現 Chat initialization 會用預設 Chat component DB 覆蓋 Runs 的 `db_id`。`agent-ui-delivery/src/hooks/useChatActions.ts` 已限制此 DB 初始化只適用 Chat view／未設定 view；POC `agent-ui.patch` 已從固定 fork base 重新生成。bind-mounted Dev UI reload／deep link 驗收通過，Docker UI fixture 內 `pnpm exec tsc --noEmit` 通過。
+- [x] 停止 `factory-agent-ui-fixture` 與 `factory-agentos-mock`；Docker CLI 確認 production `factory-agent-ui` 仍 running 且 image 為 `sha256:0a11f3d38a56df8924319a513a7c05f8395da99c123d901c3c28e55f3775465f`。本輪沒有 build 或部署新 image，也沒有停止 AgentOS／DB／Langfuse／Backstage。
+- [x] F07 screenshots 只由 ChatGPT in-app browser API 擷取並目視檢查，留在 browser tool output；沒有擷取整個桌面。該 API 無 repo 檔案匯出方法，V05 圖檔交接維持未完成。
+- [ ] 有真實關聯資料時的 Run-to-Trace 正向驗收及非空 compaction 仍待可用 records；本輪不建立 model run、不以 synthetic trace 取代。
+
 ## 前一 production checkpoint（2026-11-22；image `d2eb8f…`）
 
 - [x] **Overview loading／error-state 保持資料庫選單。** `SourcePanel` 在 loading、error 且無 payload 時仍可選擇顯示固定 children；Recent sessions 永遠顯示 DB selector，config 尚在載入／401 時保留 URL 上的目前 DB，提示選項未載入，不保留舊 Token 的 DB list。ChatGPT browser final production reload 顯示 health/info 200、Factory/config/sessions 各自 401、無殘留 protected values，且 `AgentOS default` selector 仍可見。

@@ -59,7 +59,9 @@ const server = createServer((request, response) => {
   if (pathname === '/factory/revision') {
     return sendJson(response, 200, { revision: 'fixture-revision' })
   }
-  if (pathname === '/agents') return sendJson(response, 200, [])
+  if (pathname === '/agents') {
+    return sendJson(response, 200, [{ id: 'fixture-agent', name: 'Fixture Agent' }])
+  }
   if (pathname === '/teams') return sendJson(response, 200, [])
   if (pathname === '/workflows') {
     return sendJson(response, 200, [{

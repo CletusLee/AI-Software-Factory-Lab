@@ -9127,7 +9127,7 @@ index cff3c9a..e54ba9b 100644
        setSessionsData,
        sessionId,
 diff --git a/src/hooks/useChatActions.ts b/src/hooks/useChatActions.ts
-index ae7d8a8..facbb8f 100644
+index ae7d8a8..943dfc4 100644
 --- a/src/hooks/useChatActions.ts
 +++ b/src/hooks/useChatActions.ts
 @@ -1,4 +1,4 @@
@@ -9144,9 +9144,11 @@ index ae7d8a8..facbb8f 100644
    const { chatInputRef } = useStore()
    const selectedEndpoint = useStore((state) => state.selectedEndpoint)
    const authToken = useStore((state) => state.authToken)
-@@ -23,31 +24,31 @@ const useChatActions = () => {
+@@ -22,32 +23,33 @@ const useChatActions = () => {
+   const [agentId, setAgentId] = useQueryState('agent')
    const [teamId, setTeamId] = useQueryState('team')
    const [, setDbId] = useQueryState('db_id')
++  const [viewQuery] = useQueryState('view')
  
 -  const getStatus = useCallback(async () => {
 +  const getStatus = useCallback(async (signal?: AbortSignal) => {
@@ -9185,7 +9187,7 @@ index ae7d8a8..facbb8f 100644
        return []
      }
    }, [selectedEndpoint, authToken])
-@@ -73,15 +74,24 @@ const useChatActions = () => {
+@@ -73,15 +75,24 @@ const useChatActions = () => {
    )
  
    const initialize = useCallback(async () => {
@@ -9213,7 +9215,59 @@ index ae7d8a8..facbb8f 100644
  
          if (!agentId && !teamId) {
            const currentMode = useStore.getState().mode
-@@ -145,6 +155,7 @@ const useChatActions = () => {
+@@ -90,7 +101,7 @@ const useChatActions = () => {
+             const firstTeam = teams[0]
+             setTeamId(firstTeam.id)
+             setSelectedModel(firstTeam.model?.provider || '')
+-            setDbId(firstTeam.db_id || '')
++            if (!viewQuery || viewQuery === 'chat') setDbId(firstTeam.db_id || '')
+             setAgentId(null)
+             setTeams(teams)
+           } else if (currentMode === 'agent' && agents.length > 0) {
+@@ -98,7 +109,7 @@ const useChatActions = () => {
+             setMode('agent')
+             setAgentId(firstAgent.id)
+             setSelectedModel(firstAgent.model?.model || '')
+-            setDbId(firstAgent.db_id || '')
++            if (!viewQuery || viewQuery === 'chat') setDbId(firstAgent.db_id || '')
+             setAgents(agents)
+           }
+         } else {
+@@ -109,14 +120,14 @@ const useChatActions = () => {
+             if (agent) {
+               setMode('agent')
+               setSelectedModel(agent.model?.model || '')
+-              setDbId(agent.db_id || '')
++              if (!viewQuery || viewQuery === 'chat') setDbId(agent.db_id || '')
+               setTeamId(null)
+             } else if (agents.length > 0) {
+               const firstAgent = agents[0]
+               setMode('agent')
+               setAgentId(firstAgent.id)
+               setSelectedModel(firstAgent.model?.model || '')
+-              setDbId(firstAgent.db_id || '')
++              if (!viewQuery || viewQuery === 'chat') setDbId(firstAgent.db_id || '')
+               setTeamId(null)
+             }
+           } else if (teamId) {
+@@ -124,14 +135,14 @@ const useChatActions = () => {
+             if (team) {
+               setMode('team')
+               setSelectedModel(team.model?.provider || '')
+-              setDbId(team.db_id || '')
++              if (!viewQuery || viewQuery === 'chat') setDbId(team.db_id || '')
+               setAgentId(null)
+             } else if (teams.length > 0) {
+               const firstTeam = teams[0]
+               setMode('team')
+               setTeamId(firstTeam.id)
+               setSelectedModel(firstTeam.model?.provider || '')
+-              setDbId(firstTeam.db_id || '')
++              if (!viewQuery || viewQuery === 'chat') setDbId(firstTeam.db_id || '')
+               setAgentId(null)
+             }
+           }
+@@ -145,6 +156,7 @@ const useChatActions = () => {
        }
        return { agents, teams }
      } catch (error) {
@@ -9221,7 +9275,7 @@ index ae7d8a8..facbb8f 100644
        console.error('Error initializing :', error)
        setIsEndpointActive(false)
        setMode('agent')
-@@ -154,7 +165,10 @@ const useChatActions = () => {
+@@ -154,7 +166,10 @@ const useChatActions = () => {
        setAgents([])
        setTeams([])
      } finally {
@@ -9233,6 +9287,16 @@ index ae7d8a8..facbb8f 100644
      }
    }, [
      getStatus,
+@@ -170,7 +185,8 @@ const useChatActions = () => {
+     setTeamId,
+     setDbId,
+     agentId,
+-    teamId
++    teamId,
++    viewQuery
+   ])
+ 
+   return {
 diff --git a/src/hooks/useSessionLoader.tsx b/src/hooks/useSessionLoader.tsx
 index 947eaf0..1dbf788 100644
 --- a/src/hooks/useSessionLoader.tsx
