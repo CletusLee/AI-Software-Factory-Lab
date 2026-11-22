@@ -4,8 +4,9 @@
 
 ## 最新接手點（2026-11-22；production image `0a11f3…`）
 
-- [x] **窄版 Workflow 與 Metrics fixture。** 375×844 的 ChatGPT 內建瀏覽器中，Workflow 線性 Graph 無水平溢位；Tree／Graph inspector 的初始焦點、Tab／Shift+Tab 循環、Escape／Close 焦點返回已驗。隔離 Metrics fixture 的缺失 `total_tokens` 顯示 Incomplete、不顯示部分總和；2 runs／0% success 顯示 100% failure。截圖在瀏覽器工具輸出，未存 repo；平行 Graph 欄數、真實失敗 run 及日期邊界仍待驗。
+- [x] **窄版 Workflow 與 Metrics fixture。** 375×844 的 ChatGPT 內建瀏覽器中，3 個 synthetic parallel Graph children 在 272px 卡片寬度下單欄直向排列，文件／body 寬均 375px。只鍵盤 Tab 到 Graph node 後按 Enter 開啟 inspector；Tab／Shift+Tab trap、Escape／Close 焦點返回通過。Metrics fixture 的缺失 `total_tokens` 顯示 Incomplete、不顯示部分總和；2 runs／0% success 顯示 100% failure。AgentOS 3.2.1 source 與單日 browser request 已確認日期起訖包含當日；真實 failed run 與 Continuous Improvement production Graph 仍待可追查資料。
 - [x] **Production 更新與清理。** Docker Compose build 通過（使用已通過編譯、lint、TypeScript 與 static generation 的快取層），只重建 `agent-ui`，目前 image `sha256:0a11f3d38a56df8924319a513a7c05f8395da99c123d901c3c28e55f3775465f`；首頁／health proxy 200，無授權 workflows 401。AgentOS 3.2.1 running、DB healthy；兩個 fixture containers 已停止。
+- [x] **F16 外部健康檢查隔離。** 另以臨時 Docker network 跑 bind-mounted UI 與 AgentOS mock，不連接 Langfuse／Gateway／Backstage；ChatGPT browser 顯示三個 health check 均 UNREACHABLE，外部 Retry 後只更新三項檢查時間。Deployment／components／revision／storage／registry 等成功 AgentOS 卡片維持載入。未碰 production／外部服務；browser screenshot 在工具輸出，沒有受支援的 repo 檔案匯出方式。
 - [x] **文件交接。** POC README 加入當前交付狀態；Agent UI repo README 更新功能、部署限制與 Token 行為，附上標明版本的歷史畫面。完整未完成項目以能力計畫為準。
 
 ## 前一 production checkpoint（2026-11-22；image `d2eb8f…`）
@@ -22,13 +23,13 @@
 
 ## 前一 checkpoint 當時尚待資料、服務或裝置能力的項目（2026-11-22；已由上方最新狀態更新）
 
-- 真實 AgentOS default 與具名 DB 都有近期 sessions；Overview 的成功空清單只以 mock fixture 驗證，不能作為實際部署資料證據。
+- 真實 AgentOS default 與具名 DB 都有近期 sessions；成功空清單已由隔離 mock fixture 驗證 UI 呈現，現行部署沒有 production empty response 可觀察。這是當前資料狀態，不是未完成的 Overview UI 行為。
 - `/memories`、`/learnings` 是成功空集合；Knowledge config 回 404。尚無真實 Memory／Learning records 或已配置 Knowledge instance 可驗欄位、分頁與檢索來源。
 - AgentOS native Traces／trace-session stats 為空。Langfuse 只有 0 datasets；2026-11-22 唯讀觀察 1 project／14,763 traces，10 筆 trace detail 抽樣未見 AgentOS run/session 關聯，故 F11/F13 的正向關聯與 A/B dataset run 仍未驗。沒有啟動新模型 run。
 - FileSystem 四個 scoped GET 對 Testing Agent 回 404（未配置）；Media GET 回 503（storage 未配置），沒有 media key／內容。`/os/metrics/users` 因未設定 `user_directory` 回 503。
-- F12 尚無真實 failed／0%-success run、缺欄位 Metrics response fixture 或日期邊界定義。F07 尚無 non-empty compaction record。
-- Backstage Catalog Graph 空白問題已修正；目前整合缺口是 Langfuse trace↔AgentOS run mapping 與真實外部服務 outage fault injection。
-- ChatGPT browser screenshots 已擷取並在工具輸出檢查，但無支援方法寫入 `docs/screenshots/`；實際 125% browser zoom 未驗。Workflow graph/node inspector 全鍵盤與完整頁面 Tab 稽核仍缺。
+- F12 的缺欄位 Metrics 與 synthetic 0%-success fixture 已由上方 browser 驗收；AgentOS 3.2.1 source 確認 inclusive calendar-date bounds，2026-11-17 單日 browser request 亦成功。仍無真實 failed／0%-success run 可驗；F07 尚無 non-empty compaction record。
+- Backstage Catalog Graph 空白問題已修正；目前整合缺口是 Langfuse trace↔AgentOS run mapping。外部 health failure isolation 已用獨立 Docker network 驗證，沒有停止任何真實外部服務。
+- ChatGPT browser screenshots 已擷取並在工具輸出檢查，但無支援方法寫入 `docs/screenshots/`；實際 125% browser zoom 未驗。Workflow graph node inspector 的純鍵盤啟動與焦點返回已驗；完整跨頁 Tab 稽核仍缺。
 - P0.3 的 62/70 GET bounded sweep 已加上 Sessions、Memory、Learnings、Evals、Traces、Registry 的 page 1／2／999 樣本；仍未覆蓋 8 個 file/content/media routes、整個 GET surface 的 query／DB／page 組合及非空 Knowledge／Trace／Eval fixtures。P0.4 真實 AgentOS/model stream TCP abort 與 request-log UI／紀錄隔離仍未驗。P3 寫入／模型操作尚無明確 test target，未執行。
 
 ## 前一個 production checkpoint（2026-11-22；image `813fe12…`）
@@ -46,7 +47,7 @@
 
 ## 尚待資料、服務或裝置能力的項目（2026-11-22）
 
-- AgentOS default 與具名 DB 目前都回傳近期 sessions，沒有成功但空的 Overview sessions fixture；F01 的空狀態尚未驗。
+- AgentOS default 與具名 DB 目前都回傳近期 sessions；在此 813fe12 checkpoint 尚未有 successful-empty fixture，後續已用隔離 mock 驗 Overview 空狀態（見最新接手點）。目前 production 沒有空清單回應可供觀察。
 - `/memories`、`/learnings` 都是成功空集合；Knowledge config 回 404，尚無真實 Memory／Learning record 或已配置 Knowledge instance 可驗欄位、分頁及檢索來源。
 - 原生 AgentOS `/traces` 與 trace session stats 成功但回 0 筆。Langfuse API 目前可讀到 1 project、14,176 traces，但抽樣 observations 未見 AgentOS run/session key 或 top-level sessionId，故仍無法驗正向 run→trace 關聯；Langfuse datasets 為 0。AgentOS 日誌雖顯示 OTel exporter enabled，不能據此推定目前 traces 由本 POC run 產生。
 - FileSystem 四個唯讀 GET 已抽查；Testing Agent `factory-09` 均回 404 `This agent does not have a filesystem`。未指定 scope 的 `/filesystem/files` 回 200／空陣列不等於已配置的空檔案庫。現有 sessions 未見 media key；Media GET 回 503 `Media storage is not configured on AgentOS`，未取得或下載媒體。
@@ -55,7 +56,7 @@
 - 本輪啟動 agno-gateway 與 Backstage：Gateway health/report 為 200，現有報告日期 2026-11-14；Backstage Guest Catalog 有 45 entities，但 Catalog Graph 空白。Langfuse project API 回 1 project，trace API 有 14,176 traces，但沒有已驗 AgentOS run mapping。最新 System image 顯示三個外部 health endpoint 的 status／最後檢查時間，不代表整合關係已配對。
 - ChatGPT in-app browser 可擷取並顯示新版畫面，但目前工具沒有受支援的 repo screenshot file output；新 3.2.1 圖片尚無法存入 `docs/screenshots/`。既有舊版圖片沒有改名冒充新版。此次 viewport override 也沒有改變 `innerWidth`，不能當作窄版驗收。
 - 實際 125% zoom 仍無法由 ChatGPT in-app browser 設定；2026-11-22 已在 375px current browser 檢查 Runs 控制項／session／run／step 的 Tab 與 Enter，並遍歷側欄九個工作區、以 Enter 切頁、Escape 關閉 drawer 和驗證焦點返回。所有頁面內容的完整 Tab 稽核、graph node inspector、快速 DB 切換與斷線恢復仍待續。最新 image 已以 synthetic Agent stream 驗 endpoint 切換後畫面沒有晚到 callback；未證明 TCP disconnect，也未以真實 AgentOS／模型驗證。
-- Overview 已加入 Approvals／Queue 的獨立可用狀態卡；目前兩個授權 GET 都回 503，UI 已明確說明設定不可用且不是成功空集合。F01 仍缺成功空 sessions fixture。
+- Overview 已加入 Approvals／Queue 的獨立可用狀態卡；目前兩個授權 GET 都回 503，UI 已明確說明設定不可用且不是成功空集合。此 checkpoint 的成功空 sessions fixture 後續已補驗，見最新接手點。
 - P3 的 Workflow submit／cancel／continue、approvals、schedules、Knowledge import、Memory/Learning mutation 與 eval-run 尚未實際執行；它們可能建立資料、啟動模型或改變狀態，需有明確的 test target 與影響範圍後再驗。
 
 其餘跨頁工作依 [能力計畫的未完成項目](agent-ui-capability-plan.md)追蹤；OpenAPI 路由存在只算契約盤點，不代表 runtime 已啟用或有資料。
@@ -72,7 +73,7 @@
 - [x] 同一 browser 重驗 Overview 的 Approvals／Queue 各回 503；按 Approvals Retry 只更新 Approvals 檢查時間，Queue 狀態未變。System 顯示 health OK、Agno 3.2.1、26／3／2 元件、1 DB、1 model；Registry 69 筆／7 頁。Langfuse、Gateway、Backstage health checks 各 200；此狀態不代表 trace/project 關聯可用。
 - [x] Metrics 初次載入時資料庫選項顯示 `Failed to fetch`；按 UI Refresh 後選項成功出現。瀏覽器沒有提供可核對的失敗 HTTP status，亦未注入 TCP 故障，因此只記為一次暫時性 fetch 錯誤及重試恢復，不推斷原因。
 - [x] 新版 Overview、Metrics、System、搜尋畫面使用 ChatGPT 內建瀏覽器 screenshot API 擷取並在工具輸出目視核對；沒有擷取整個電腦。工具沒有提供把影像寫入 repository 的受支援途徑，V05 保持未完成。
-- [ ] 尚無真實 failed／0%-success run、缺欄位 Metrics response fixture 或日期邊界規格可供完整驗收；實際 125% zoom 與 repo screenshot file 也未取得。
+- [ ] 此 checkpoint 當時尚無真實 failed／0%-success run，亦未檢查日期邊界；日期 inclusive 規則已由後續 AgentOS source 與單日請求確認，見最新 checkpoint。實際 125% zoom 與新版 repo screenshot file 仍未取得。
 - [ ] Langfuse 已有 traces 但沒有 dataset，且抽樣 traces 沒有 AgentOS run/session 對應欄位；F11/F13 的正向關聯與 A/B dataset run 仍待具備可追查來源的資料。
 
 ### F01 Pending work sources (image `337b6ded…`, superseded)

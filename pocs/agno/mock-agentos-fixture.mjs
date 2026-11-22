@@ -42,7 +42,7 @@ const server = createServer((request, response) => {
     return sendJson(response, 200, {
       agentos_version: 'fixture',
       agentos_id: 'agent-ui-fixture',
-      auth_enabled: true,
+      auth_enabled: false,
       interfaces: []
     })
   }
@@ -82,6 +82,15 @@ const server = createServer((request, response) => {
       revision: 'fixture-revision',
       steps: [
         { name: 'Loop label fixture', type: 'loop' },
+        {
+          name: 'Parallel layout fixture',
+          type: 'parallel',
+          steps: [
+            { name: 'Parallel path Alpha', type: 'loop' },
+            { name: 'Parallel path Beta', type: 'router' },
+            { name: 'Parallel path Gamma', type: 'custom_step' }
+          ]
+        },
         { name: 'Router label fixture', type: 'router' },
         { name: 'Unknown label fixture', type: 'custom_step' }
       ]
