@@ -8,6 +8,27 @@
     "An identical event ID with a different amount raises ValueError.",
     "A rejected conflicting retry does not change the original ledger entry."
   ],
+  "context_files": ["payment_demo.py", "test_payment_demo.py"],
+  "project_skills": {
+    "pay482-retry-invariants": "project-skills/pay482-retry-invariants/SKILL.md"
+  },
+  "agent_skill_variants": {
+    "factory-04": {
+      "A": [],
+      "B": ["pay482-retry-invariants"]
+    },
+    "factory-09": {
+      "A": [],
+      "B": ["pay482-retry-invariants"]
+    }
+  },
+  "evaluation_fixtures": {
+    "missing-ledger-invariant": {
+      "files": {
+        "test_payment_demo.py": "evaluation-fixtures/test_payment_demo_missing_ledger_assertion.py"
+      }
+    }
+  },
   "candidate": {
     "baseline_dir": "baseline",
     "files": ["payment_demo.py", "test_payment_demo.py"],

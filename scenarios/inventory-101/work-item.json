@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "id": "INVENTORY-101",
+  "title": "Reject conflicting inventory synchronization retries",
+  "problem": "An inventory ledger accepts repeated event IDs without checking whether the SKU and quantity still match the original event.",
+  "acceptance_criteria": [
+    "A repeated event ID with the same SKU and quantity is idempotent.",
+    "A repeated event ID with a different SKU or quantity raises ValueError.",
+    "Rejecting a conflict preserves the original inventory entry."
+  ],
+  "context_files": ["inventory.py", "test_inventory.py"],
+  "project_skills": {
+    "inventory-retry-invariants": "project-skills/inventory-retry-invariants/SKILL.md"
+  },
+  "agent_skill_variants": {
+    "factory-04": {
+      "A": [],
+      "B": ["inventory-retry-invariants"]
+    },
+    "factory-09": {
+      "A": [],
+      "B": ["inventory-retry-invariants"]
+    }
+  }
+}

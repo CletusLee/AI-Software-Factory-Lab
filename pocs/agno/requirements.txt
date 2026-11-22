@@ -1,4 +1,4 @@
-agno[os]>=2.6.0,<3.0.0
+agno[os]==3.2.1
 sqlalchemy[asyncio]
 psycopg[binary]
 openai
@@ -7,3 +7,6 @@ uvicorn
 openinference-instrumentation-agno
 opentelemetry-sdk
 opentelemetry-exporter-otlp-proto-http
+opentelemetry-instrumentation-fastapi
+langfuse>=4.0,<5.0
+requests

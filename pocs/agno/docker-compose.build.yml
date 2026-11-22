@@ -1,0 +1,5 @@
+services:
+  agentos:
+    build:
+      context: .
+      dockerfile: Dockerfile.agentos

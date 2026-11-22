@@ -14,6 +14,14 @@ app:
         config:
           path: /
 
+    # Seed the relationship graph from the POC's existing system entity.
+    # Without a root, the graph plugin starts with no entity references.
+    - page:catalog-graph:
+        config:
+          path: /catalog-graph
+          rootEntityRefs:
+            - system:default/ai-factory
+
     # Visit tracking records which pages users navigate to and is disabled by default.
     # Enable it to populate the Most Visited and Recently Visited widgets on the Home page.
     # Visit data is stored via UserSettings storage if available, otherwise browser localStorage.

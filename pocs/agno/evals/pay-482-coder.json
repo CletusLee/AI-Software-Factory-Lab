@@ -1,0 +1,20 @@
+{
+  "dataset_name": "agno-factory-coder",
+  "items": [
+    {
+      "id": "pay-482-coder-conflicting-retry",
+      "input": {
+        "evaluation_case_id": "pay-482-coder-conflicting-retry",
+        "work_id": "PAY-482",
+        "fixture_id": "",
+        "task": "Review the candidate change against the acceptance criteria. Identify the conflict-check branch and explain whether it preserves the original ledger entry. Cite the source file."
+      },
+      "expected_output": {
+        "decision": "ACTIONABLE",
+        "required_evidence": ["payment_demo.py", "event_id", "amount"],
+        "forbidden_terms": ["the agent applied the patch", "the agent ran the tests"]
+      },
+      "metadata": {"agent_id": "factory-04", "work_id": "PAY-482", "split": "development"}
+    }
+  ]
+}

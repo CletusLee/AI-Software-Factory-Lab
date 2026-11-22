@@ -4,6 +4,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
@@ -188,6 +189,78 @@ if otel_endpoint:
 def factory_revision():
     return {'revision': registry['revision'], 'agents': len(registry['agents']),
             'teams': len(registry['teams']), 'workflows': len(registry['workflows'])}
+
+
+@app.get('/factory/workflows/{workflow_id}')
+def factory_workflow(workflow_id: str):
+    workflow = registry['workflows'].get(workflow_id)
+    if workflow is None:
+        raise HTTPException(status_code=404, detail='Workflow definition not found')
+    return {**workflow, 'revision': registry['revision']}
+
+
+def factory_skill(skill_id: str):
+    path = registry['skills'].get(skill_id)
+    if path is None:
+        return {'id': skill_id, 'description': 'Skill definition not found.', 'instructions': ''}
+
+    content = path.read_text(encoding='utf-8')
+    parts = content.split('---', 2)
+    frontmatter = parts[1].splitlines() if len(parts) == 3 else []
+    description = next(
+        (line.split(':', 1)[1].strip().strip('"') for line in frontmatter
+         if line.startswith('description:')),
+        '',
+    )
+    instructions = parts[2].strip() if len(parts) == 3 else content.strip()
+    return {'id': skill_id, 'description': description, 'instructions': instructions}
+
+
+@app.get('/factory/agents/{agent_id}')
+def factory_agent_definition(agent_id: str):
+    agent = registry['agents'].get(agent_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail='Agent definition not found')
+
+    return {
+        'id': agent['id'],
+        'name': agent['name'],
+        'group': agent.get('group', ''),
+        'summary': agent.get('summary', ''),
+        'inputs': agent.get('inputs', ''),
+        'outputs': agent.get('outputs', ''),
+        'skills': [factory_skill(skill_id) for skill_id in agent.get('skills', [])],
+        'instructions': agent.get('prompt', ''),
+        'revision': registry['revision'],
+        'source': 'Factory definition registry',
+    }
+
+
+@app.get('/factory/teams/{team_id}')
+def factory_team_definition(team_id: str):
+    team = registry['teams'].get(team_id)
+    if team is None:
+        raise HTTPException(status_code=404, detail='Team definition not found')
+
+    members = []
+    for member_id in team.get('members', []):
+        agent = registry['agents'].get(member_id)
+        if agent is not None:
+            members.append({
+                'id': agent['id'],
+                'name': agent['name'],
+                'group': agent.get('group', ''),
+                'summary': agent.get('summary', ''),
+            })
+
+    return {
+        'id': team['id'],
+        'name': team['name'],
+        'members': members,
+        'instructions': team.get('prompt', ''),
+        'revision': registry['revision'],
+        'source': 'Factory definition registry',
+    }
 
 # 允許本機 agent-ui (localhost:3000) 跨域存取與 SSE 串流
 app.add_middleware(

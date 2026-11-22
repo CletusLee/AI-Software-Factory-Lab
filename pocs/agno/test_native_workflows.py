@@ -11,24 +11,51 @@ from native_workflows import evidence_gate, pending_approval
 
 
 class ApprovalGateTests(unittest.TestCase):
-    def test_failed_reviewer_is_unknown(self):
+    def successful_outputs(self, review, failed=()):
         names = ('Evidence Gate', 'Knowledge', 'Plan', 'Orchestrate', 'Design', 'Code Proposal',
                  'Infrastructure Proposal', 'Integration Proposal', 'Apply Candidate Change',
                  'Candidate Verification', 'Testing', 'Security', 'Reliability', 'Review', 'Risk Summary')
-        outputs = {name: StepOutput(step_name=name, success=name != 'Review') for name in names}
+        return {
+            name: StepOutput(step_name=name,
+                             content=json.dumps(review) if name == 'Review' else '{}',
+                             success=name not in failed)
+            for name in names
+        }
+
+    def test_failed_reviewer_is_unknown(self):
+        outputs = self.successful_outputs({'decision': 'CLEAR', 'blockers': []}, failed=('Review',))
         result = pending_approval(StepInput(previous_step_outputs=outputs))
         self.assertEqual(result.content['result'], 'UNKNOWN')
         self.assertIn('Review', result.content['reason'])
         self.assertFalse(result.content['released'])
 
     def test_all_successful_steps_require_human_review(self):
-        names = ('Evidence Gate', 'Knowledge', 'Plan', 'Orchestrate', 'Design', 'Code Proposal',
-                 'Infrastructure Proposal', 'Integration Proposal', 'Apply Candidate Change',
-                 'Candidate Verification', 'Testing', 'Security', 'Reliability', 'Review', 'Risk Summary')
-        outputs = {name: StepOutput(step_name=name, success=True) for name in names}
+        outputs = self.successful_outputs({'decision': 'CLEAR', 'blockers': []})
         result = pending_approval(StepInput(previous_step_outputs=outputs))
         self.assertEqual(result.content['result'], 'READY_FOR_HUMAN_REVIEW')
         self.assertFalse(result.content['released'])
+
+    def test_reviewer_blockers_require_rework(self):
+        outputs = self.successful_outputs({
+            'decision': 'REQUEST_CHANGES',
+            'blockers': ['The original ledger entry is not asserted.'],
+        })
+        result = pending_approval(StepInput(
+            input={'work_id': 'PAY-482'}, previous_step_outputs=outputs))
+        self.assertEqual(result.content['result'], 'READY_FOR_REWORK')
+        self.assertIn('original ledger entry', result.content['reason'][0])
+        self.assertFalse(result.content['released'])
+
+    def test_unreadable_review_is_unknown(self):
+        outputs = self.successful_outputs({'decision': 'UNCLEAR', 'blockers': []})
+        result = pending_approval(StepInput(previous_step_outputs=outputs))
+        self.assertEqual(result.content['result'], 'UNKNOWN')
+
+    def test_baseline_gate_keeps_the_previous_success_rule(self):
+        outputs = self.successful_outputs({'decision': 'UNCLEAR', 'blockers': []})
+        result = pending_approval(StepInput(
+            input={'review_gate_variant': 'baseline'}, previous_step_outputs=outputs))
+        self.assertEqual(result.content['result'], 'READY_FOR_HUMAN_REVIEW')
 
     def test_missing_step_is_unknown(self):
         self.assertEqual(pending_approval(StepInput()).content['result'], 'UNKNOWN')

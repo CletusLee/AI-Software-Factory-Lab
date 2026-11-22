@@ -1,7 +1,7 @@
 name: agno-factory-local
 services:
   catalog-export:
-    image: agno-factory-local-agentos:latest
+    image: cletus/agno-agentos:3.2.1
     command: ["python", "/app/integration/export_catalog.py"]
     environment:
       MODEL_ID: ${MODEL_ID}
@@ -43,6 +43,7 @@ services:
       POSTGRES_PASSWORD: ${BACKSTAGE_DB_PASSWORD}
     volumes:
       - ./integration/catalog:/catalog:ro
+      - ./backstage/app-config.yaml:/app/app-config.yaml:ro
       - ./backstage/app-config.production.yaml:/app/app-config.production.yaml:ro
     depends_on:
       backstage-db:
@@ -52,7 +53,7 @@ services:
     networks: [factory-net]
 
   agno-gateway:
-    image: agno-factory-local-agentos:latest
+    image: cletus/agno-agentos:3.2.1
     command: ["uvicorn", "gateway:app", "--host", "0.0.0.0", "--port", "8080"]
     environment:
       OS_SECURITY_KEY: ${OS_SECURITY_KEY}
@@ -134,10 +135,7 @@ services:
   # 2. Agno AgentOS 後端執行層
   # ==========================================
   agentos:
-    image: agno-factory-local-agentos:latest
-    build:
-      context: .
-      dockerfile: Dockerfile.agentos
+    image: cletus/agno-agentos:3.2.1
     container_name: factory-agentos
     ports:
       - "7777:7777"
@@ -152,6 +150,10 @@ services:
       LANGFUSE_OTEL_ENDPOINT: http://langfuse-web:3000/api/public/otel/v1/traces
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY}
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY}
+      LANGFUSE_HOST: http://langfuse-web:3000
+      LANGFUSE_BASE_URL: http://langfuse-web:3000
+      LANGFUSE_WEB_IMAGE_ID: ${LANGFUSE_WEB_IMAGE_ID:-UNRECORDED}
+      LANGFUSE_WORKER_IMAGE_ID: ${LANGFUSE_WORKER_IMAGE_ID:-UNRECORDED}
     volumes:
       - ./app.py:/app/app.py
       - ../../scenarios:/app/scenarios:ro
@@ -166,6 +168,8 @@ services:
       - ../../definitions:/app/definitions:ro
       - ./deployment:/app/deployment:ro
       - ./native_demo_run.py:/app/native_demo_run.py:ro
+      - ./native_experiment_run.py:/app/native_experiment_run.py:ro
+      - ./evals:/app/evals:ro
       - ./native_report.py:/app/native_report.py:ro
       - ./native_report_template.html:/app/native_report_template.html:ro
       - ./swarm-output:/app/swarm-output
@@ -182,13 +186,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.ui
-      args:
-        NEXT_PUBLIC_OS_SECURITY_KEY: ${OS_SECURITY_KEY}
     container_name: factory-agent-ui
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_OS_SECURITY_KEY: ${OS_SECURITY_KEY}
+      AGENTOS_URL: http://agentos:7777
     depends_on:
       - agentos
     networks:

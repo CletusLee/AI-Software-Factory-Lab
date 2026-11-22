@@ -39,6 +39,7 @@ pocs/*/backstage/.yarn/*
 
 # Generated catalog, demos, traces, captures and videos
 **/demo-report.html
+**/backups/
 **/integration/catalog/
 **/deployment/active.txt
 **/deployment/last-good.txt

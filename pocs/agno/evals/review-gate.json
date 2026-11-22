@@ -1,0 +1,38 @@
+{
+  "dataset_name": "agno-factory-review-gate",
+  "items": [
+    {
+      "id": "pay-482-reviewer-blocker-gate",
+      "input": {
+        "work_id": "PAY-482",
+        "review_decision": {
+          "decision": "REQUEST_CHANGES",
+          "blockers": ["The reviewer found a missing acceptance assertion."]
+        }
+      },
+      "expected_output": {
+        "expected_by_variant": {
+          "A": "READY_FOR_HUMAN_REVIEW",
+          "B": "READY_FOR_REWORK"
+        },
+        "released": false
+      },
+      "metadata": {"target": "review-gate", "work_id": "PAY-482", "split": "development"}
+    },
+    {
+      "id": "pay-482-reviewer-unclear-gate",
+      "input": {
+        "work_id": "PAY-482",
+        "review_decision": {"decision": "UNCLEAR", "blockers": []}
+      },
+      "expected_output": {
+        "expected_by_variant": {
+          "A": "READY_FOR_HUMAN_REVIEW",
+          "B": "UNKNOWN"
+        },
+        "released": false
+      },
+      "metadata": {"target": "review-gate", "work_id": "PAY-482", "split": "development"}
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "dataset_name": "agno-factory-software-delivery",
+  "items": [
+    {
+      "id": "pay-482-delivery-stale",
+      "input": {"work_id": "PAY-482", "scenario": "stale"},
+      "expected_output": {"result": "NOT READY", "released": false},
+      "metadata": {"work_id": "PAY-482", "scenario": "stale", "split": "development"}
+    },
+    {
+      "id": "pay-482-delivery-timeout",
+      "input": {"work_id": "PAY-482", "scenario": "timeout"},
+      "expected_output": {"result": "UNKNOWN", "released": false},
+      "metadata": {"work_id": "PAY-482", "scenario": "timeout", "split": "development"}
+    },
+    {
+      "id": "pay-482-delivery-fail",
+      "input": {"work_id": "PAY-482", "scenario": "fail"},
+      "expected_output": {"result": "NOT READY", "released": false},
+      "metadata": {"work_id": "PAY-482", "scenario": "fail", "split": "development"}
+    },
+    {
+      "id": "pay-482-delivery-ready",
+      "input": {"work_id": "PAY-482", "scenario": "ready"},
+      "expected_output": {"result": "READY_FOR_HUMAN_REVIEW", "released": false},
+      "metadata": {"work_id": "PAY-482", "scenario": "ready", "split": "development"}
+    }
+  ]
+}

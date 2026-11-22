@@ -8,7 +8,7 @@
 
 | 服務 | 本機網址 | 用途 |
 | --- | --- | --- |
-| Agent UI | http://127.0.0.1:3010 | 手動呼叫 Agent 或 Team |
+| Agent UI | http://127.0.0.1:3010 | Agent、Team 對話與唯讀 Workflow 檢視 |
 | AgentOS API | http://127.0.0.1:7877/docs | Agent、Team、Workflow API |
 | Grafana | http://127.0.0.1:3002 | Explore 中查 Tempo trace |
 | Tempo API | http://127.0.0.1:3200 | trace 查詢與 readiness |
@@ -43,6 +43,21 @@ flowchart LR
 ```
 
 每次執行由 AgentOS 建立 trace，透過 OTLP/HTTP 傳到 Tempo；Grafana 的 Tempo datasource 已預先設定。Workflow 結果報告將 Agno run/session ID、Tempo trace ID、業務結果及 span 查詢狀態並列，方便從執行結果跳到 trace。AgentOS run server span 會記錄 `agno.run_id`、`agno.session_id`、`agno.component.type` 與 `agno.component.id`。本地儲存不依賴 MinIO。
+
+## Agent UI Workflow 檢視
+
+Agent UI 側欄的 **Workflows** 頁面列出 AgentOS 已註冊的流程，提供順序、平行步驟、條件成立與不成立分支，以及節點引用的唯讀檢視。各節點會依容器寬度自動換欄，空間不足時改為單欄，避免巢狀條件與平行步驟中的卡片被擠窄。點選 Agent 或 Team 節點可查看 Factory 定義與 AgentOS runtime 詳情；窄版以可切換的詳情面板保留流程圖寬度。側欄的 **Agents** 頁面也可搜尋所有已部署的 Agent 和 Team。
+
+AgentOS 的 `GET /factory/workflows/{workflow_id}`、`GET /factory/agents/{agent_id}` 與 `GET /factory/teams/{team_id}` 沿用既有 AgentOS 認證和 CORS 設定，回傳目前載入的 Factory 定義及 revision。Agent／Team 詳情再向 AgentOS 原生 API 取得模型、工具和 Team 成員等 runtime 欄位；Factory API 使用回傳白名單，不包含金鑰或連線憑證。AgentOS 沒有公開的知識庫或記憶設定會標示為未提供。
+
+Agent UI 前端修改以 `agent-ui.patch` 套用至 `Dockerfile.ui` 固定的上游 commit。從 repository 根目錄重新建置並啟動 AgentOS 與 Agent UI：
+
+```powershell
+docker compose -p agno-factory-tempo -f pocs/agno-tempo/docker-compose.yml --env-file pocs/agno-tempo/.env build agentos agent-ui
+docker compose -p agno-factory-tempo -f pocs/agno-tempo/docker-compose.yml --env-file pocs/agno-tempo/.env up -d agentos agent-ui
+```
+
+開啟 `http://127.0.0.1:3010`，在側欄選擇 **Workflows** 檢視流程，或選擇 **Agents** 查詢 Agent／Team。若畫面顯示 `Unauthorized`，請點選側欄遮罩的 **AUTH TOKEN** 欄位，換成目前 `.env` 的 `OS_SECURITY_KEY`。
 
 ## Workflow 設計
 

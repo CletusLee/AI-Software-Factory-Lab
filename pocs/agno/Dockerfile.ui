@@ -4,13 +4,22 @@ RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@9.15.5 --activate
 
 WORKDIR /ui
-RUN git clone --depth 1 https://github.com/agno-agi/agent-ui.git .
+ARG AGENT_UI_COMMIT=817a009b3d7e407b17b48872f5bbf1c5055b5955
+RUN git init \
+    && git remote add origin https://github.com/CletusLee/agent-ui.git \
+    && git fetch --depth 1 origin ${AGENT_UI_COMMIT} \
+    && git checkout --detach FETCH_HEAD
 
-ARG NEXT_PUBLIC_OS_SECURITY_KEY
-ENV NEXT_PUBLIC_OS_SECURITY_KEY=${NEXT_PUBLIC_OS_SECURITY_KEY}
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN pnpm install --frozen-lockfile || pnpm install
+# The POC patch changes source files only, so keep the locked dependency layer reusable.
+RUN pnpm install --frozen-lockfile
+
+COPY agent-ui.patch /tmp/agent-ui.patch
+RUN git apply --check /tmp/agent-ui.patch \
+    && git apply /tmp/agent-ui.patch \
+    && rm /tmp/agent-ui.patch
+
 RUN pnpm build
 
 EXPOSE 3000

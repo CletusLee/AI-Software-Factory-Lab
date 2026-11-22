@@ -1,0 +1,32 @@
+services:
+  agentos-mock:
+    image: agno-factory-local-agent-ui
+    container_name: factory-agentos-mock
+    working_dir: /ui
+    command: ["node", "/fixture.mjs"]
+    volumes:
+      - ./mock-agentos-fixture.mjs:/fixture.mjs:ro
+    networks:
+      - factory-net
+    profiles:
+      - ui-fixture
+
+  agent-ui-fixture:
+    image: agno-factory-local-agent-ui
+    container_name: factory-agent-ui-fixture
+    working_dir: /ui
+    command: ["pnpm", "exec", "next", "dev", "--hostname", "0.0.0.0", "--port", "3000"]
+    environment:
+      NEXT_TELEMETRY_DISABLED: "1"
+      WATCHPACK_POLLING: "true"
+      AGENTOS_URL: http://agentos-mock:7777
+    volumes:
+      - ../../agent-ui-delivery/src:/ui/src:ro
+    ports:
+      - "127.0.0.1:3002:3000"
+    depends_on:
+      - agentos-mock
+    networks:
+      - factory-net
+    profiles:
+      - ui-fixture

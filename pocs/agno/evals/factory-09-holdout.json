@@ -1,0 +1,20 @@
+{
+  "dataset_name": "agno-factory-testing-holdout",
+  "items": [
+    {
+      "id": "inventory-101-test-coverage",
+      "input": {
+        "evaluation_case_id": "inventory-101-test-coverage",
+        "work_id": "INVENTORY-101",
+        "fixture_id": "",
+        "task": "Review the supplied inventory synchronization tests. State whether the retry invariants are covered, cite the test file and test name, and keep the review specific to inventory."
+      },
+      "expected_output": {
+        "decision": "COVERED",
+        "required_evidence": ["test_inventory.py", "test_conflicting_payload_is_rejected_without_changing_original"],
+        "forbidden_terms": ["PAY-482", "payment ledger"]
+      },
+      "metadata": {"agent_id": "factory-09", "work_id": "INVENTORY-101", "split": "holdout"}
+    }
+  ]
+}

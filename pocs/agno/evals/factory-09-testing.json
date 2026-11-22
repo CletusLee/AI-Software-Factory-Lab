@@ -1,0 +1,35 @@
+{
+  "dataset_name": "agno-factory-testing",
+  "items": [
+    {
+      "id": "pay-482-test-coverage-complete",
+      "input": {
+        "evaluation_case_id": "pay-482-test-coverage-complete",
+        "work_id": "PAY-482",
+        "fixture_id": "",
+        "task": "Review the supplied acceptance tests. State whether the conflicting retry behavior and preservation of the original entry are covered. Cite the exact test file and test name."
+      },
+      "expected_output": {
+        "decision": "COVERED",
+        "required_evidence": ["test_payment_demo.py", "test_same_event_with_conflicting_amount_is_rejected", "ledger.entries"],
+        "forbidden_terms": ["missing assertion", "not tested"]
+      },
+      "metadata": {"agent_id": "factory-09", "work_id": "PAY-482", "split": "development"}
+    },
+    {
+      "id": "pay-482-test-coverage-missing-ledger-assertion",
+      "input": {
+        "evaluation_case_id": "pay-482-test-coverage-missing-ledger-assertion",
+        "work_id": "PAY-482",
+        "fixture_id": "missing-ledger-invariant",
+        "task": "Review the supplied acceptance tests. Identify any missing assertion about the original entry after a conflicting retry. Cite the exact test file and test name."
+      },
+      "expected_output": {
+        "decision": "GAP_FOUND",
+        "required_evidence": ["test_payment_demo.py", "test_same_event_with_conflicting_amount_is_rejected", "ledger.entries"],
+        "forbidden_terms": ["all acceptance criteria are covered", "no missing coverage"]
+      },
+      "metadata": {"agent_id": "factory-09", "work_id": "PAY-482", "split": "development"}
+    }
+  ]
+}

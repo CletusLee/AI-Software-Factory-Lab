@@ -10,6 +10,9 @@ RUN git init \
     && git fetch --depth 1 origin ${AGENT_UI_COMMIT} \
     && git checkout --detach FETCH_HEAD
 
+COPY agent-ui.patch /tmp/agent-ui.patch
+RUN git apply /tmp/agent-ui.patch && rm /tmp/agent-ui.patch
+
 ARG NEXT_PUBLIC_OS_SECURITY_KEY
 ENV NEXT_PUBLIC_OS_SECURITY_KEY=${NEXT_PUBLIC_OS_SECURITY_KEY}
 ENV NEXT_TELEMETRY_DISABLED=1

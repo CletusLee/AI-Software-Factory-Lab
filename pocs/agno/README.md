@@ -1,5 +1,11 @@
 # Agno AI Factory local POC
 
+## Agent UI delivery status (2026-11-22)
+
+The local Agent UI now includes Overview, Agent and Team details, Workflow Tree／Graph, Tools／Skills／Models, Sessions and Runs, Data, Observability, and System／integrations views. The local production container was rebuilt from the POC patch and runs image `sha256:0a11f3d38a56df8924319a513a7c05f8395da99c123d901c3c28e55f3775465f`; Docker checks returned 200 for the UI and AgentOS health proxy, and 401 for an unauthenticated protected route. AgentOS 3.2.1 and the healthy database remained running.
+
+The feature plan is **not fully complete**. Real positive-data verification for Knowledge, Memory, Learnings, Traces and Evaluations, management endpoints currently returning 503, Workflow run operations and highlighting, stream abort, full accessibility and screenshot export remain open. The [capability plan](docs/agent-ui-capability-plan.md), [implementation log](docs/agent-ui-implementation-log.md), and [verification evidence](docs/agent-ui-verification-evidence.md) record the completed scope and remaining work. Agent UI's own README describes its features and includes historical illustrative screenshots.
+
 This POC loads the factory's shared agent, team, skill, and workflow definitions into Agno AgentOS. PAY-482 is an example code work item passed to the shared `software-delivery` workflow: it supplies acceptance criteria and a candidate change, runs tests in an isolated workspace, and proceeds through expert review to the human review gate. LibreChat, Backstage, and Langfuse provide chat, a catalog, and tracing.
 
 PAY-482's external ticket, CI, revisions, human approval, and release are simulated. The example code and its three unit tests run locally. For each workflow run, the candidate change supplied by the work item is applied and tested in an isolated directory. Agents provide design and review recommendations. The workflow stops before human review, without committing or deploying.
@@ -27,7 +33,7 @@ flowchart LR
 | --- | --- | --- |
 | Backstage | Catalog and dependencies for 26 agents, 3 teams, and 2 workflows | http://localhost:7007 |
 | LibreChat | Select an agent or team for text chat | http://localhost:3080 |
-| Agent UI | Agno's agent and team test interface | http://localhost:3000 |
+| Agent UI | Workflow／Agent／Team design details, sessions and run inspection | http://localhost:3000 |
 | AgentOS | API for agents, teams, workflows, and sessions | http://localhost:7777/docs |
 | Langfuse | Traces, observations, graph, and timeline | http://localhost:3001 |
 | Gateway | LibreChat-to-AgentOS adapter and HTML report entry point | http://localhost:7778/report |
@@ -66,13 +72,54 @@ The setup tool generates other service keys. Fill in `LANGFUSE_PUBLIC_KEY` and `
 
 ## Start the services
 
+The default Compose file uses the [public Agno AgentOS image `cletus/agno-agentos:3.2.1`](https://hub.docker.com/r/cletus/agno-agentos/tags); Docker Hub contains this version, so testers do not need to build AgentOS. The image supplies the pinned Agno/Python runtime. This POC still needs a clone because Compose mounts Factory definitions, workflow handlers, scenario fixtures, and integration code from the repository.
+
 ```sh
-docker compose build agentos backstage agent-ui
+docker compose pull agentos
+docker compose build backstage agent-ui
 docker compose up -d
 docker compose ps
 ```
 
-The first Backstage and Agent UI builds may take several minutes. Once database health checks and initialization complete:
+To rebuild the AgentOS image locally after changing `requirements.lock` or `Dockerfile.agentos`, use the build overlay explicitly:
+
+```sh
+docker compose -f docker-compose.yml -f docker-compose.build.yml build agentos
+docker compose -f docker-compose.yml -f docker-compose.build.yml up -d agentos
+```
+
+This rebuild writes the same `cletus/agno-agentos:3.2.1` local tag. The first Backstage and Agent UI builds may take several minutes. Once database health checks and initialization complete:
+
+### Iterate on Agent UI without rebuilding the image
+
+For edits under `agent-ui-delivery/src`, use the dev overlay. It reuses the already-built Agent UI image for dependencies and bind-mounts the workspace source into a Next.js dev server. The production and dev services both use host port 3000, so switch between them:
+
+```sh
+# Stop production UI, then run the mounted source on port 3000
+docker compose -f docker-compose.yml -f docker-compose.ui-dev.yml --profile ui-dev stop agent-ui
+docker compose -f docker-compose.yml -f docker-compose.ui-dev.yml --profile ui-dev up -d --no-deps agent-ui-dev
+docker compose -f docker-compose.yml -f docker-compose.ui-dev.yml --profile ui-dev logs --tail 50 agent-ui-dev
+
+# Restore the production UI when the iteration is done
+docker compose -f docker-compose.yml -f docker-compose.ui-dev.yml --profile ui-dev stop agent-ui-dev
+docker compose -f docker-compose.yml up -d --no-deps agent-ui
+```
+
+Next dev is configured to hot-reload edits under `src/`; dependency, Next config, Dockerfile, or production build changes still need an image build. The same-origin `/api/agentos` proxy avoids direct browser-to-AgentOS fetches in ChatGPT's isolated loopback context. Use the dev overlay for source iteration when Watchpack remains stable, and the production image for final build/runtime acceptance.
+
+For deterministic UI state and error-recovery checks without touching real AgentOS data, the fixture overlay runs a local mock and a bind-mounted UI on host port 3002. It uses fabricated responses, requires no AgentOS token, publishes no mock port, and is isolated from production data paths:
+
+```sh
+docker compose build agent-ui
+docker compose -f docker-compose.yml -f docker-compose.ui-fixture.yml --profile ui-fixture up -d --no-deps agentos-mock agent-ui-fixture
+docker compose -f docker-compose.yml -f docker-compose.ui-fixture.yml --profile ui-fixture logs --tail 50 agent-ui-fixture
+```
+
+Open `http://127.0.0.1:3002`. Available session DB fixtures include successful empty results, 403, one-time 503, one-time dropped connection, slow DB A, and fast DB B. `/?view=workflows` exposes unknown `loop`, `router`, and `custom_step` labels. The synthetic Metrics scenario is `/?view=observability&observability_view=metrics&metrics_start=2026-11-17&metrics_end=2026-11-18`; it returns an operational runs summary with `success_rate=0` and a daily row that omits `token_metrics.total_tokens`, allowing the UI's 100% failure-rate and incomplete-token states to be inspected. These are fabricated display fixtures only; they do not represent real failed runs, real token usage, or AgentOS date-boundary semantics. Stop only the fixture containers when finished:
+
+```sh
+docker compose -f docker-compose.yml -f docker-compose.ui-fixture.yml --profile ui-fixture stop agent-ui-fixture agentos-mock
+```
 
 1. Open Backstage, select **Guest**, and search the Catalog for an agent, team, or workflow. Component pages show catalog dependencies, and the workflow report shows the example flow and saved run data.
 2. Open LibreChat, create a local account, and sign in. Select the **Agno** endpoint and a model such as `knowledge-team` or `sdlc-ticket-agent`.
@@ -152,7 +199,9 @@ return amount
 2. Knowledge Team, Planner, Orchestrator, Architect, and parallel experts review the requirements and candidate change using the shared definitions.
 3. Apply Candidate Change creates a unique `swarm-output/workspaces/<work-id>/<run-id>/` workspace, copies declared files from the faulty baseline, confirms the regression test fails, and applies the exact work item change. Mounted source outside the workspace is read-only.
 4. Candidate Verification runs the work item's Python test command in that workspace and saves the diff, baseline failure output, and post-change test output.
-5. Only passing acceptance results proceed through Testing/Security/Reliability, Reviewer, and Risk & Approval to the human review gate. Failed or missing results block review.
+5. Only passing acceptance results proceed through Testing/Security/Reliability, Reviewer, and Risk & Approval. The Reviewer must return a structured decision. Explicit blockers produce `READY_FOR_REWORK`, an unreadable decision produces `UNKNOWN`, and only a clear review reaches the human review gate.
+
+Each Agno agent also has a `load_work_item_context` tool. Given a `work_id`, it returns that item's permitted source and test files, acceptance criteria, and only the project skills assigned to that agent and experiment variant. Work-item data is resolved for each call, so concurrent work items do not modify shared agent skill settings. `PAY-482` and `INVENTORY-101` demonstrate isolated project-specific rules.
 
 The example applies a reviewed candidate diff supplied by the work item. The Coder Agent reviews and comments on it. **The POC does not yet have the LLM generate and directly apply a code patch.** The candidate workspace changes on disk, but the read-only source is not overwritten and no Git commit or deployment is created.
 
@@ -178,6 +227,46 @@ docker compose exec -T agentos python native_demo_run.py
 | `fail` | Simulated concurrency check fails | `NOT READY` |
 
 The `ready` path applies the PAY-482 candidate change and runs tests in the isolated workspace. The other scenarios stop at Evidence Gate. The script writes `swarm-output/native-results.json`, with candidate workspaces and regression evidence under `swarm-output/workspaces/`. Model calls may take time. If an improvement workflow step fails, the script exits nonzero and retains recorded results.
+
+### Agent and workflow experiments
+
+The experiment runner seeds hosted Langfuse datasets from the checked-in cases, calls the Agno API with W3C trace context and work-item headers, and records scores, model settings, installed Python package versions, definition revision, source-case revision, Agno run ID, and trace ID. Token counts and duration are included when AgentOS returns them; cost stays null until a reliable price source is configured. Dataset run names preserve each variant and repetition for comparison in Langfuse. Before seeding, verify that the self-hosted Langfuse server is version 3.63.0 or later for Python SDK v4 dataset experiments. The runner requires the configured Langfuse keys and a running AgentOS and Langfuse stack. For reproducible image tracking, set `LANGFUSE_WEB_IMAGE_ID` and `LANGFUSE_WORKER_IMAGE_ID` in `.env` to the outputs of `docker image inspect --format '{{.Id}}' langfuse/langfuse:3` and `docker image inspect --format '{{.Id}}' langfuse/langfuse-worker:3`; otherwise the run records `UNRECORDED`.
+
+Seed or update the fixed datasets:
+
+```sh
+docker compose run --rm --no-deps agentos python native_experiment_run.py --seed
+```
+
+Run Testing A and B against the same dataset. A uses the agent's existing role skills. B adds the project skill selected by each work item:
+
+```sh
+docker compose run --rm --no-deps agentos python native_experiment_run.py --target agent --agent-id factory-09 --variant A --run-label trial-1
+docker compose run --rm --no-deps agentos python native_experiment_run.py --target agent --agent-id factory-09 --variant B --run-label trial-1
+```
+
+The Testing development dataset includes complete PAY-482 coverage and a copy missing the original-ledger assertion. The INVENTORY-101 case is kept in a separate holdout dataset. Evaluator references stay in each dataset's expected output and are not included in the agent request. Compare the development runs under **Datasets → Experiments**. After selecting a candidate, run both variants once against the holdout with `--split holdout`. Repeat development comparisons for the Coder with `--agent-id factory-04`.
+
+```sh
+docker compose run --rm --no-deps agentos python native_experiment_run.py --target agent --agent-id factory-09 --variant A --split holdout --run-label holdout-1
+docker compose run --rm --no-deps agentos python native_experiment_run.py --target agent --agent-id factory-09 --variant B --split holdout --run-label holdout-1
+```
+
+Compare the existing and candidate final review gate against fixed review outputs:
+
+```sh
+docker compose run --rm --no-deps agentos python native_experiment_run.py --target review-gate --dimension workflow --variant A --run-label trial-1
+docker compose run --rm --no-deps agentos python native_experiment_run.py --target review-gate --dimension workflow --variant B --run-label trial-1
+```
+
+Run the full Software Delivery workflow against the same cases, holding the review gate fixed while comparing project skill variants:
+
+```sh
+docker compose run --rm --no-deps agentos python native_experiment_run.py --target workflow --dimension skill --variant A --run-label trial-1
+docker compose run --rm --no-deps agentos python native_experiment_run.py --target workflow --dimension skill --variant B --run-label trial-1
+```
+
+Check each item's score and trace before selecting a version. Langfuse run aggregates do not replace review of critical regressions. Workflow and gate cases receive `outcome_correct` plus categorical `gate_violation` (`CLEAR`, `VIOLATION`, or `UNKNOWN`). A full workflow run stores its overall result on the experiment item. A direct agent run scores that agent's dataset item trace, which contains the agent observation and model/tool children. The gate dataset isolates deterministic gate behavior from LLM review quality.
 
 ### Recorded verification results
 
@@ -218,9 +307,9 @@ The Architect component shows a one-to-many relationship: it depends on Orchestr
 
 In LibreChat, select **Agno → `sdlc-ticket-agent`** and enter the following prompt. This is the English translation of the Traditional Chinese prompt visible in the screenshot:
 
-> Check whether PAY-482's passed scenario is ready for Release Review. Call check_ticket_readiness and summarize the problem context (what happens when the same webhook event ID has a different amount), whether the candidate and tested revisions match, local acceptance test results, simulated evidence, recommended status, and next steps. Do not claim that a ticket was submitted, human approval obtained, or a release performed.
+> Check whether PAY-482's passed scenario is ready for Release Review. Use candidate_revision `PASTE_THE_REVISION_FROM_THE_COMPLETED_WORKFLOW` from the latest workflow result. Call check_ticket_readiness and summarize the problem context (what happens when the same webhook event ID has a different amount), whether the candidate and tested revisions match, local acceptance test results, simulated evidence, recommended status, and next steps. Do not claim that a ticket was submitted, human approval obtained, or a release performed.
 
-The recorded response loaded the `evidence-review` skill and called `check_ticket_readiness(work_item_id=PAY-482, scenario=passed)`. It reported matching simulated candidate and tested revisions, 3/3 passing local example tests, and a `READY` recommendation for review. Ticket, CI/commit, Spec, and Oracle approval data are simulated fixtures. `READY` is a recommendation, not human approval or release.
+The captured response predates candidate-version matching and called `check_ticket_readiness` without a candidate revision. Current calls require the exact `candidate_revision` emitted by a completed workflow. Without a matching isolated-workspace result, the tool returns `UNKNOWN`. External ticket, CI commit, Spec, and Oracle approval details remain simulated.
 
 This screenshot shows a single `sdlc-ticket-agent` chat. The LibreChat gateway currently routes agents and teams to AgentOS `/agents` and `/teams` runs; this chat does not apply the candidate code or run the multi-agent `software-delivery` workflow. To inspect that workflow's candidate workspace and human review gate, execute `native_demo_run.py` above and inspect the separate Langfuse workflow trace below.
 
@@ -228,7 +317,7 @@ This screenshot shows a single `sdlc-ticket-agent` chat. The LibreChat gateway c
 
 ![Agno Agent UI showing a PAY-482 Ready recommendation](docs/screenshots/agent-ui-sdlc-readiness.png)
 
-This is an existing `SDLC Ticket & Spec Assistant` conversation for `scenario=passed`, with a `READY` recommendation returned by the tool. The screen marks Azure Boards and CI evidence as local simulated data. It demonstrates the Agent UI response format and tool use, independently of the Software Delivery workflow's candidate change and human review.
+This is a historical `SDLC Ticket & Spec Assistant` conversation for `scenario=passed`, captured before the tool required candidate-revision evidence. Current readiness checks use the revision returned by the workflow and the matching isolated-workspace test record. The screen marks Azure Boards and CI evidence as local simulated data.
 
 ### Langfuse: actual workflow trace
 
@@ -287,6 +376,6 @@ docker compose up -d
 
 `docker compose down` removes containers and networks while retaining the default data volumes. Database volumes contain sessions, accounts, and Langfuse records. Back them up as needed before recreating an environment.
 
-The local configuration uses Backstage Guest access, simplified service passwords, and local HTTP. Agent UI embeds the shared AgentOS key in its frontend at build time. This is intended for a controlled local POC. External or multi-user use requires redesigned authentication, authorization, key handling, and network settings.
+The local configuration uses Backstage Guest access, simplified service passwords, and local HTTP. The Agent UI asks for the AgentOS token at runtime and keeps it in memory for the current page session. The POC uses a shared OS security key and does not provide per-user authorization. External or multi-user use requires redesigned authentication, authorization, key handling, and network settings.
 
 Backstage's live Langfuse summary, run revision lookup, and workflow trigger page are not yet implemented. The LibreChat gateway does not yet support attachments or token-by-token streaming. Model and tool behavior depends on the provider and actual evidence.
