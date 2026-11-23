@@ -1,8 +1,8 @@
 # Agno AI Factory local POC
 
-## Agent UI delivery status (2026-11-22)
+## Agent UI delivery status (2026-11-23)
 
-The local Agent UI now includes Overview, Agent and Team details, Workflow Tree／Graph, Tools／Skills／Models, Sessions and Runs, Data, Observability, and System／integrations views. The local production container was rebuilt from the POC patch and runs image `sha256:0a11f3d38a56df8924319a513a7c05f8395da99c123d901c3c28e55f3775465f`; Docker checks returned 200 for the UI and AgentOS health proxy, and 401 for an unauthenticated protected route. AgentOS 3.2.1 and the healthy database remained running.
+The local Agent UI now includes Overview, Agent and Team details, Workflow Tree／Graph, Tools／Skills／Models, Sessions and Runs, Data, Observability, and System／integrations views. As of 2026-11-23, the local production container runs image `sha256:335cab6a78137c56a89a6838968edaf798bd32b35ed98f774065bf3267924bb9`, including the Runs deep-link `db_id` fix. Docker checks returned 200 for the UI and AgentOS health proxy, and 401 for an unauthenticated protected route. AgentOS 3.2.1 and the healthy database are running.
 
 The feature plan is **not fully complete**. Real positive-data verification for Knowledge, Memory, Learnings, Traces and Evaluations, management endpoints currently returning 503, Workflow run operations and highlighting, stream abort, full accessibility and screenshot export remain open. The [capability plan](docs/agent-ui-capability-plan.md), [implementation log](docs/agent-ui-implementation-log.md), and [verification evidence](docs/agent-ui-verification-evidence.md) record the completed scope and remaining work. Agent UI's own README describes its features and includes historical illustrative screenshots.
 

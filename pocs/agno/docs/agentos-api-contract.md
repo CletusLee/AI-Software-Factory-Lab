@@ -1,6 +1,6 @@
 # AgentOS API 契約快照（目前部署：3.2.1）
 
-最後更新：2026-11-22（台灣時間）。本文件保留 2026-11-21 Agno 2.9.0 的歷史 OpenAPI inventory，並以本次執行中的 Agno 3.2.1 AgentOS 為目前契約。Live API check 在 Docker 容器與本機 Agent UI 執行；只記路由中繼資料、狀態與欄位名稱，不存憑證、prompt 或原始設定。
+最後更新：2026-11-23（台灣時間）。本文件保留 2026-11-21 Agno 2.9.0 的歷史 OpenAPI inventory，並以 Docker 重啟後執行中的 Agno 3.2.1 AgentOS 為目前契約。Live API check 在 Docker 容器與本機 Agent UI 執行；只記路由中繼資料、狀態與欄位名稱，不存憑證、prompt 或原始設定。
 
 ## 快照摘要
 
@@ -252,14 +252,20 @@ Authenticated GETs with `limit=1` sampled pages 1, 2, and 999 on the default dat
 
 An authorized read-only comparison against the existing Workflow session confirmed the 3.2.1 query contract for `GET /sessions/{session_id}/runs`: no filters and `status=COMPLETED` returned 200 with one run; `status=ERROR` returned 200 with zero runs; `status=FAILED` returned 400 and listed the accepted values `CANCELLED`, `COMPLETED`, `ERROR`, `PAUSED`, `PENDING`, `REGENERATED`, and `RUNNING`. `created_after` and `created_before` are Unix epoch seconds, not ISO strings: an ISO value returned 422 (`int_parsing`), while the equivalent second values returned 200 with the matching run. The UI now validates exact statuses before sending and serializes local date/time filters to UTC epoch seconds. This confirms only the tested Workflow session and does not establish that a failed run exists.
 
-For the current UI's DB-backed paged lists, OpenAPI records their exact `page`/`limit` parameters, while the live checks above distinguish authenticated records, successful empty responses, and unconfigured Knowledge. Unauthorized reads returned 401. The configured-but-disabled management families returned 503. A 404 is established only for Knowledge against the selected DB; it is not generalized to unknown IDs for every resource family. These distinctions must remain visible in UI acceptance records.
+### 2026-11-23 session-run cursor sample
+
+After the Docker restart, an authorized GET-only sample used an existing Agent session with three top-level runs. A full read returned indices `[0, 1, 2]` and `meta.total_count=3`; `limit=1` returned newest index `2`, then `before_run_index=2&limit=1` returned `1` (`has_more=true`), and `before_run_index=1&limit=1` returned `0` (`has_more=false`). The reverse cursor `after_run_index=0&limit=1` returned index `1`. This demonstrates contiguous pages without duplicate or missing top-level indices for this session only; no session ID, run ID, or content was retained.
+
+Team responses require a separate interpretation: the sampled Team session had `meta.total_count=1` top-level run while its `data` array also contained member child runs. Therefore raw `data.length` can exceed the top-level page count; the 11 existing Team sessions did not provide enough top-level runs for a Team cursor-page sample. No Team execution was initiated.
+
+For the current UI's DB-backed paged lists, OpenAPI records their exact `page`/`limit` parameters, while the live checks above distinguish authenticated records, successful empty responses, and unconfigured Knowledge. The session-run cursor contract is sampled for one three-run Agent session only; other query/DB/page combinations remain open. Unauthorized reads returned 401. The configured-but-disabled management families returned 503. A 404 is established only for Knowledge against the selected DB; it is not generalized to unknown IDs for every resource family. These distinctions must remain visible in UI acceptance records.
 
 ## Remaining v3 contract coverage
 
 ### Same-origin UI proxy check (2026-11-22)
 
 - [x] The Next.js `/api/agentos/[...path]` route forwards the allowlisted GET／POST／DELETE calls to server-side `AGENTOS_URL`, preserving query parameters and POST bodies. The browser uses a same-origin URL for local AgentOS requests, which works in the ChatGPT in-app browser where direct localhost fetches reset the connection.
-- [x] Current production Docker image `sha256:0a11f3d38a56df8924319a513a7c05f8395da99c123d901c3c28e55f3775465f`: `GET /api/agentos/health` returned 200; unauthenticated `GET /api/agentos/workflows` returned 401. No proxy Token environment variable is configured in the production container. The earlier `813fe12…` and `d2eb8f…` images are superseded checkpoints.
+- [x] 2026-11-22 production checkpoint image `sha256:0a11f3d38a56df8924319a513a7c05f8395da99c123d901c3c28e55f3775465f`: `GET /api/agentos/health` returned 200; unauthenticated `GET /api/agentos/workflows` returned 401. No proxy Token environment variable was configured in that production container. This checkpoint was superseded on 2026-11-23 by image `sha256:335cab6…`; earlier `813fe12…` and `d2eb8f…` images are also superseded.
 - [ ] Authenticated operation sampling remains partial. The browser feature checks used a temporary development-only local auth fallback, removed before the final production build; this does not establish every proxied operation's request/response behavior.
 
 ### Bounded live GET sweep (2026-11-22)
@@ -275,4 +281,4 @@ For the current UI's DB-backed paged lists, OpenAPI records their exact `page`/`
 - [x] 目前 UI 涉及的 DB-backed lists 已對照 OpenAPI pagination parameters，並記錄成功有資料、成功空集合、401、Knowledge 404/503、management 503；每種狀態僅套用至表內明確測過的 endpoint，不外推成所有 route 的通則。
 - [x] F06 Tools／Skills／Models 的 live sources 已映射：Runtime tools 與 models 使用 `/config`（3.2.1 沒有 `/models`），Factory Skills／Agent reverse references 使用受認證的本機 `/factory/catalog` extension。
 - [ ] F16 external integrations 的 API/UI mapping 已知 `/api/integrations/status` 探測 Gateway、Backstage、Langfuse health，但它不是 AgentOS OpenAPI route。Backstage Catalog Graph 已設定 `system:default/ai-factory` root，browser 可見 Catalog nodes／relations；隔離 Docker network 已驗三個 health probes 同時失敗時其他 AgentOS 卡片仍載入。Langfuse project/trace correlation 尚未驗證，故整合驗收仍未完成；詳見[驗收證據](agent-ui-verification-evidence.md#2026-11-22-f16-isolated-docker-network-outage-check)。
-- [x] Earlier 2026-11-22 ChatGPT in-app browser check used a 375×844 viewport for System／Runs; cards and Workflow session/run detail stacked without horizontal overflow. Runs showed 1 Continuous Improvement session, 1 COMPLETED run, 6 step results, and 10 executor runs. At that checkpoint the viewport was reset; a later image `0052fa…` System／Registry recheck set it to 375×844 again, verified document/body width and remains unreset. The latest browser result is bound to production image ID in the top section of [verification evidence](agent-ui-verification-evidence.md#agno-321-ui-verification).
+- [x] Historical 2026-11-22 ChatGPT in-app browser checks used a 375×844 viewport for System／Runs and image `0052fa…` System／Registry; those checks confirmed their layouts at that checkpoint only. The latest production image/browser result is recorded in [2026-11-23 restart and production image](agent-ui-verification-evidence.md#2026-11-23-reboot-recovery-and-production-image); new-image narrow viewport and 125% zoom remain unverified.
