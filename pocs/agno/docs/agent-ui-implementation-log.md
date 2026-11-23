@@ -2,12 +2,17 @@
 
 本文件隨實作持續更新，供中斷後直接續接；最新 checkpoint 放在最上方。詳見[完整功能與驗收 checklist](agent-ui-capability-plan.md)與[UI 驗收及截圖證據](agent-ui-verification-evidence.md)。所有時間為台灣時間。只記錄本 POC 已觀察到的結果，不把其他 POC 的驗收結果移植成本 POC 證據。較早 checkpoint 的未勾選框代表當時尚未完成；目前待辦以本文件最上方「尚待資料、服務或裝置能力」及能力計畫中未完成主項／子項為準。
 
-## 最新接手點（2026-11-23；production image `335cab6…`）
+## 最新接手點（2026-11-23；production image `1d2e02e…`）
 
 - [x] **重開機後 Docker 恢復。** Docker CLI 確認 Engine 可用，`docker compose -f pocs/agno/docker-compose.yml up -d --wait --no-build` 恢復 Compose 服務，沒有因重開機重建 image。正式服務目前 running，Agno DB healthy；AgentOS 3.2.1 `/health` 為 200。Exited 的 `factory-agent-ui-fixture`／`factory-agentos-mock` orphan containers 保留未刪除。
 - [x] **Runs DB deep-link source fix 正式建置與部署。** `docker compose -f pocs/agno/docker-compose.yml build agent-ui` 通過 patch check/apply、Next compile、lint、TypeScript 與 static generation，產生 image `sha256:335cab6a78137c56a89a6838968edaf798bd32b35ed98f774065bf3267924bb9`；只替換 Agent UI，未重建 AgentOS 或資料庫。UI `/`、`/api/agentos/health` 為 200，無授權 `/api/agentos/config` 為 401。第一次容器內 probe 過早得到 connection refused；Next `Ready` 後三項狀態皆符合預期。
+- [x] **Final UI patch build／deploy。** 綁定 source 驗收後，Docker build 第一次在 `git apply --check` 失敗、沒有產生或部署 image。重生的 POC patch 正規化為 LF，並以 pinned fork base `817a009…` 的獨立 index 驗證可套用；隨後 Docker build 的 patch check/apply、Next compile、lint、TypeScript 和 static generation 全通過，image 為 `sha256:1d2e02ed08ceab93e13c05066c3021e6e0c0ab897385a2b8df07e93400e7258c`。Docker Compose 只重建／替換 `agent-ui`，沒有重啟 AgentOS、DB 或其他 POC 服務。
+- [x] **Final image runtime/browser check。** Docker CLI 確認 `factory-agent-ui` 以新 digest running；`/`=200、`/api/agentos/health`=200、未授權 `/api/agentos/config`=401。AgentOS 為 `cletus/agno-agentos:3.2.1` 且 running，Agno DB running／healthy。ChatGPT in-app browser reload 載入新 UI，DOM accessibility tree 顯示 `Refresh AgentOS connection` 按鈕；無 Token 狀態下 Workflow detail requests 正確回 401。截圖只來自 ChatGPT browser screenshot API，留在工具輸出；沒有 repo export API。
+- [x] **臨時驗收容器收尾。** synthetic `factory-agent-ui-fixture` 與 `factory-agentos-mock` 已停止；`factory-agent-ui-dev` 仍為此前已停止狀態。未執行 `--remove-orphans`，沒有移除任何既有容器、volume 或 image。
 - [x] **新 image production browser check。** ChatGPT in-app browser 從 System 看到 AgentOS 3.2.1、26 Agents／3 Teams／2 Workflows、69 筆 Registry／7 頁、1 個 session DB；Langfuse、Gateway、Backstage health 均 200，授權後 Approvals、Schedules、Components、Queue、Service Accounts 均為 503。Runs 具名 `db_id` 深連結還原 Continuous Improvement Workflow 的 1 個 Session、1 個 COMPLETED run、6 個 step results、10 個 executor runs，URL 與 selector 保留 DB ID。畫面只在 browser tool output，未截桌面；新截圖無 API 可寫入 repo。
-- [x] **F07 cursor 續頁唯讀核對。** 既有 Agent session 的三個 top-level run indices 為 0／1／2；limit=1 由 index 2 經 `before=2`、`before=1` 依序取得 1、0，`after=0` 取得 1，沒有跳號或重複。Team 的 `data` 同時包含 member child runs，不能以 raw array 長度代表 top-level pagination count。詳細 aggregate-only 結果見 [API 契約](agentos-api-contract.md#2026-11-23-session-run-cursor-sample)。
+- [x] **F07 單 session cursor 初步核對。** 既有 Agent session 的三個 top-level run indices 為 0／1／2；limit=1 由 index 2 經 `before=2`、`before=1` 依序取得 1、0，`after=0` 取得 1，沒有跳號或重複。Team 的 `data` 同時包含 member child runs，不能以 raw array 長度代表 top-level pagination count。詳細 aggregate-only 結果見 [API 契約](agentos-api-contract.md#2026-11-23-session-run-cursor-audit)。
+- [x] **擴大 F07 session-run 唯讀抽查。** 現有 DB 的 `/sessions` 回傳 47 sessions（7 Agent／11 Team／29 Workflow）；對全部 47 筆 GET `/sessions/{session_id}/runs` 均回 200。3 個多 run Agent sessions 的完整 index 都連續；每個都以 `limit=1` 通過 `before_run_index=max` 與 `after_run_index=min` 邊界及預期相鄰 index／`has_more`（3/3）。只保留 aggregate counts，不記 ID 或內容；涵蓋僅限目前單一 DB 與當時資料，P0.3 其餘 query／DB／page 邊界仍開放。見[API 契約](agentos-api-contract.md#2026-11-23-session-run-cursor-audit)。
+- [x] **Workflow 詳情切換與 Sidebar 可及性修正。** `WorkflowExplorer` 的 `ComponentDetails` 加上 `${kind}:${id}` React key，避免切換元件時短暫沿用前一元件的 detail state；Sidebar refresh icon 加 `aria-label="Refresh AgentOS connection"`。隔離 fixture 在 ChatGPT in-app browser 由 Alpha Agent → Beta Agent → Gamma Team，最終 Team runtime／Factory details 載入後沒有殘留 Agent ID／內容；鍵盤 snapshot 確認 refresh button 的可及名稱，並以 Tab 檢查 members、references、collapse、9 個 workspace nav、token／view controls、搜尋及元件清單，未見 focus trap。synthetic fixture 不執行模型、不寫入 AgentOS；V03 完整鍵盤範圍與所有 production 細節仍未完成。ChatGPT browser screenshot API 的畫面留在工具輸出，無 repository 檔案匯出 API。
 - [ ] **仍未完成的項目。** 正向 Run-to-Trace／Langfuse correlation、非空 compaction、Knowledge／Memory／Learning／Eval 真實 records、管理端點 503 的必要配置、真實 stream abort／request-log 隔離、實際 125% zoom、完整跨頁鍵盤稽核與新版 screenshot repo 匯出仍未完成。任何模型執行或資料寫入仍須有具體目標；不以空集合或 fixture 冒充 production evidence。
 
 ## 前一接手點（2026-11-22；production image `0a11f3…`，已由新 image 取代）
@@ -97,20 +102,20 @@
 ### F01 Pending work sources (image `337b6ded…`, superseded)
 
 - [x] Overview 新增 Pending work sources 卡片：對固定唯讀路由 `GET /approvals` 和 `GET /queue` 分別載入、分別 Retry，且 Refresh all 會一起重查。401／403／503 與其他錯誤分開呈現；目前這兩個 Agno 3.2.1 授權 GET 都回 503，卡片清楚顯示「設定不可用，非空結果」。若 route 回 2xx，OpenAPI 沒有清單 schema，因此 UI 不會宣稱待辦數或 0。
-- [x] 當時的 production image `sha256:337b6dedeea844d2f56543787c2e974ff2ebdb08fad01fd9c016c47ba93b9de3` 成功套用 patch、Next compile、lint、TypeScript、static generation，後由當時的 `c2f78c7…` image 取代；這些歷史部署後續已由最上方 2026-11-23 checkpoint 的 `335cab6…` image 取代。
+- [x] 當時的 production image `sha256:337b6dedeea844d2f56543787c2e974ff2ebdb08fad01fd9c016c47ba93b9de3` 成功套用 patch、Next compile、lint、TypeScript、static generation，後由當時的 `c2f78c7…` image 取代；這些歷史部署後續已由最上方 2026-11-23 checkpoint 的 `1d2e02e…` image 取代。
 - [x] Docker CLI 確認當時 `factory-agent-ui` running、port `3000`，容器內 `GET /` 回 HTTP 200。AgentOS 沒有重啟，維持 3.2.1。
-- [x] ChatGPT in-app browser 當時在 `/?view=overview` 顯示 health、runtime info、Factory revision、5 筆近期 Sessions、26／3／2 components；Approvals 和 Queue 各自顯示授權 503 設定不可用。當時 image `c2f78c7…` 的 Retry 覆驗記錄在上方歷史 checkpoint；目前 image 見本文件最上方 `335cab6…`。
+- [x] ChatGPT in-app browser 當時在 `/?view=overview` 顯示 health、runtime info、Factory revision、5 筆近期 Sessions、26／3／2 components；Approvals 和 Queue 各自顯示授權 503 設定不可用。當時 image `c2f78c7…` 的 Retry 覆驗記錄在上方歷史 checkpoint；目前 image 見本文件最上方 `1d2e02e…`。
 - [x] 窄版 Overview 使用 ChatGPT in-app browser screenshot API 擷取，畫面可見 Pending work sources、兩個 503 說明及各自 Retry。沒有擷取整個電腦；影像僅在當輪 browser tool output，V05 仍開放。
 - [ ] AgentOS default 與具名 DB 都有近期 sessions，沒有成功但空的 Overview sessions fixture；不以合成清單冒充真實回應。
 
 ### Previous production image `0052fa…` and ChatGPT browser recheck (historical)
 
-- [x] Bind-mounted dev UI 曾出現 Watchpack `ENOMEM` 且 browser 熱更新未能穩定反映 Team 狀態；當時依使用者授權停止 dev container，production build 部署 image `sha256:0052fa5430b7eed45fc2d78eb0e29f04f71c7cb76c57252fb28eb7927`。該 checkpoint 先由 image `337b6ded…`、再由 `c2f78c7…`、`7fa925d…` 取代；目前 image 為最上方 2026-11-23 的 `335cab6…`，AgentOS 未重啟，版本仍為 3.2.1。
+- [x] Bind-mounted dev UI 曾出現 Watchpack `ENOMEM` 且 browser 熱更新未能穩定反映 Team 狀態；當時依使用者授權停止 dev container，production build 部署 image `sha256:0052fa5430b7eed45fc2d78eb0e29f04f71c7cb76c57252fb28eb7927`。該 checkpoint 先由 image `337b6ded…`、再由 `c2f78c7…`、`7fa925d…` 取代；目前 image 為最上方 2026-11-23 的 `1d2e02e…`，AgentOS 未重啟，版本仍為 3.2.1。
 - [x] 修正初始化取回 Agents／Teams 後未寫入 Team state 的分支，production browser 授權後顯示 26 Agents／3 Teams（Governance、Knowledge、Observability），System Registry HTTP 200／69 records。
 - [x] Registry browser 驗收：預設為 69 records／7 pages；page 2 載入不同 agents；`team` 類型篩選 3 筆；名稱 `Governance` 篩選 1 筆；Clear 還原 69 筆／7 頁。沒有保存 registry names、IDs 或 metadata values。
 - [x] F04 production browser 驗收：Observability Team 有 4 members；點 `factory-21` 開 Agent 詳情後，URL 含 `factory_return_team=observability-team`；按 Back 後 URL 還原 Team、清除 return query，4 members 再次顯示。
 - [x] 同一 image 在 ChatGPT in-app browser 375×844 viewport 實測 `innerWidth`／document width／body width 均 375px；System／Registry 控制及清單沒有水平溢位。桌面與窄版截圖由 Agent UI browser screenshot API 擷取並在工具輸出目視檢查；API 沒有 repo file export path，因此沒有 `docs/screenshots/` 新圖，也沒有擷取整個電腦桌面。
-- [ ] 該次 ChatGPT browser 曾以窄版 viewport 顯示；目前使用的 CUA browser API 不提供 viewport override reset。image `337b6ded…` 的 Overview 與 image `c2f78c7…` 的搜尋、Metrics、Overview、System 已另做 375px 覆驗；125% 瀏覽器縮放仍未實測。現行 image 為 `335cab6…`，本輪 viewport override 未生效。
+- [ ] 該次 ChatGPT browser 曾以窄版 viewport 顯示；目前使用的 CUA browser API 不提供 viewport override reset。image `337b6ded…` 的 Overview 與 image `c2f78c7…` 的搜尋、Metrics、Overview、System 已另做 375px 覆驗；125% 瀏覽器縮放仍未實測。現行 image 為 `1d2e02e…`，本輪 viewport override 未生效。
 
 ### Registry 唯讀面板與 bind-mounted dev loop（2026-11-22；image 439 初次驗收 checkpoint）
 
@@ -125,7 +130,7 @@
   docker compose -f pocs/agno/docker-compose.yml -f pocs/agno/docker-compose.ui-dev.yml --profile ui-dev stop agent-ui-dev
   docker compose -f pocs/agno/docker-compose.yml up -d --no-deps agent-ui
   ```
-- [x] **image 439 production restore（當時狀態）。** `factory-agent-ui` 曾以 image `sha256:439a8735afa27ddd42051f57642d045056e17effe2399a95f43b1a964d657a45` 啟動，Next production server Ready。ChatGPT browser reload 後 Registry panel 正常顯示無 Token 的 401／Retry；原有使用者分頁的 Token 沒有被讀取或轉移。當時後續 image 0052 為部署；目前部署與覆驗見最上方 `335cab6…` checkpoint。
+- [x] **image 439 production restore（當時狀態）。** `factory-agent-ui` 曾以 image `sha256:439a8735afa27ddd42051f57642d045056e17effe2399a95f43b1a964d657a45` 啟動，Next production server Ready。ChatGPT browser reload 後 Registry panel 正常顯示無 Token 的 401／Retry；原有使用者分頁的 Token 沒有被讀取或轉移。當時後續 image 0052 為部署；目前部署與覆驗見最上方 `1d2e02e…` checkpoint。
 - [x] **授權後 Registry 面板驗收。** ChatGPT browser 授權頁在 image `0052fa5430b7eed45fc2d78eb0e29f04f71c7cb76c57252fb28eb7927ade7967` 顯示 69 筆／7 頁；page 2、`team` 3 筆、`Governance` 1 筆及 Clear 還原均已驗。Token 只以遮罩顯示，未記錄或複製 Token 值。
 - [x] Registry 新版 System／Registry desktop 與 375px 畫面已由 ChatGPT browser screenshot API 擷取並在工具輸出顯示。repo 圖檔匯出限制統一追蹤於能力計畫 V05。
 
@@ -139,7 +144,7 @@
 
 - [x] `AgentExplorer` 現在在 Team 成員開啟 Agent 時，將來源 Team ID 存入 `factory_return_team` query；`ComponentDetails` 顯示 `Back to <Team name>`，點擊後恢復 Team 詳情並清除返回 query。Agents view query allowlist 保留來源 Team，重載可還原返回目標；手動切換元件或類型會清除舊返回狀態。
 - [x] 將變更同步到 `pocs/agno/agent-ui.patch`，`git apply --numstat` 可解析整份 patch。使用 bind-mounted dev container `/ui/src` 指向工作樹 `agent-ui-delivery/src`；Next 15.5.18 compiled `/`，`pnpm exec tsc --noEmit` exit 0。沒有重建 image。
-- [x] ChatGPT production browser 已點 Observability Team 成員 `factory-21`，進入 Agent 詳情，再按 Back to Observability Team；URL 來源 Team query、返回後 team selection 和 return query 清除均符合預期。dev log 的 Watchpack `ENOMEM` 曾導致使用者授權 production image build；此驗收在 image `sha256:0052fa5430b7eed45fc2d78eb0e29f04f71c7cb76c57252fb28eb7927` 完成，現行 image 見最上方 `335cab6…` checkpoint。
+- [x] ChatGPT production browser 已點 Observability Team 成員 `factory-21`，進入 Agent 詳情，再按 Back to Observability Team；URL 來源 Team query、返回後 team selection 和 return query 清除均符合預期。dev log 的 Watchpack `ENOMEM` 曾導致使用者授權 production image build；此驗收在 image `sha256:0052fa5430b7eed45fc2d78eb0e29f04f71c7cb76c57252fb28eb7927` 完成，現行 image 見最上方 `1d2e02e…` checkpoint。
 
 ### 原生 Evals 與深色按鈕覆驗（2026-11-22；image 9d41 checkpoint）
 
@@ -156,7 +161,7 @@
 - [x] **Targeted live GET contract audit.** 依照本機既有驗收授權的 3.2.1 route 結果，補記管理端點授權後 503、Knowledge no-DB 503／selected-DB 404、Registry page 2、filter schemas、空的 eval/trace/memory/learnings 與 metrics status；另以 no-Authorization GET 確認 `/health` 為 200、9 個受保護路由為 401。逐路由分組、計數及限制見[API 契約](agentos-api-contract.md#321-targeted-read-only-get-audit-2026-11-22)。此為唯讀抽查，不是全 135 operations 驗收。
 - [x] **V04b 外部服務連線與報告入口。** 依計畫啟動 `agno-gateway`、Backstage、Langfuse worker；Langfuse web／worker 及相依服務均在 running，`GET /api/public/health` 回 200／3.227.1，AgentOS log 有 `Langfuse OTel tracing enabled`。Gateway `GET /health` 回 200，`GET /report` 回 200，頁面標題 `PAY-482 · Workflow 執行報告`、報告日期 2026-11-14。Backstage Guest Catalog 顯示 45 entities（26 Agents／3 Teams／2 Workflows／14 Skills）；Catalog Graph 畫布仍空白。Langfuse UI 要求登入，project／trace 關聯未核對；沒有呼叫模型或建立新 run。完整限定見[驗收證據](agent-ui-verification-evidence.md)。
 - [x] **image 780 Overview 窄版基線。** ChatGPT in-app browser 載入 image `sha256:7809386…`，以 375×844、300×675 CSS viewport 觀察 Overview；document/body scroll width 分別為 375px、300px，無水平溢位，`/health` 顯示 OK，Factory／sessions／components 仍以獨立 401／Retry 呈現。兩張圖於該輪 browser tool output 顯示；這不是本次新增的 System panel 窄版覆驗。
-- [x] **該 checkpoint 當時最新 System 授權覆驗。** production image `sha256:0052fa5430b7eed45fc2d78eb0e29f04f71c7cb76c57252fb28eb7927ade7967` 的 ChatGPT browser System 顯示授權 Registry panel 69 筆／7 頁；desktop 與 375px 畫面已直接由 browser screenshot API 擷取並目視檢查。該 image 後來由本文件最上方 2026-11-23 checkpoint 的 `335cab6…` 取代。
+- [x] **該 checkpoint 當時最新 System 授權覆驗。** production image `sha256:0052fa5430b7eed45fc2d78eb0e29f04f71c7cb76c57252fb28eb7927ade7967` 的 ChatGPT browser System 顯示授權 Registry panel 69 筆／7 頁；desktop 與 375px 畫面已直接由 browser screenshot API 擷取並目視檢查。該 image 後來由本文件最上方 2026-11-23 checkpoint 的 `1d2e02e…` 取代。
 - [x] System 新版畫面已在 ChatGPT browser tool output 擷取與目視檢查；repo 圖檔匯出限制統一追蹤於能力計畫 V05。
 - [x] **Docker／build／runtime 複核（2026-11-22 checkpoint）。** 依使用者要求直接用 Docker CLI 操作。當時 `factory-agent-ui` 使用 image `sha256:0052fa5430b7eed45fc2d78eb0e29f04f71c7cb76c57252fb28eb7927ade7967` 且為 `running`，port `3000`；`factory-agentos` 使用 `cletus/agno-agentos:3.2.1`、image ID `sha256:833882bc1e024e1acbc6ad9ce953c5b4b1bb0239451ea85f28a1ab17f8b013f2`。AgentOS `/health` 回 HTTP 200，OpenAPI 為 94 paths／135 operations 且有 `/factory/catalog`。當時 UI production build 的 patch apply、Next compile、lint、TypeScript 與 static generation 完成；目前 image 見最上方 2026-11-23 checkpoint。沒有新增或執行程式測試。
 - [x] **單路由 Recheck 驗收（image 3e55 歷史 checkpoint）。** ChatGPT browser 無 Token 頁面上，按 Approvals 的 `Recheck` 後 HTTP 401 保持；該列時間從 `12:59:02` 改為 `12:59:28`，Schedules、Components、Queue、Service accounts、Registry 五列的時間仍為 `12:59:02`。此操作只重送 Approvals GET，不載入 records。
@@ -494,9 +499,9 @@
 ## 2026-11-22 Markdown checklist audit (historical pre-recheck snapshot)
 
 - [x] 此較早 audit 曾統計各文件未勾選框；該數字包含歷史 checkpoint，且後續驗收已更新狀態，不再代表目前待辦數。請以本文件最上方最新 checkpoint 和能力計畫逐項未完成清單為準；勾選狀態不代替執行證據。
-- [x] 此 pre-recheck checkpoint 的 ChatGPT in-app browser System 頁顯示 AgentOS 3.2.1、26 Agents／3 Teams／2 Workflows、1 session DB、1 model；Approvals／Schedules／Components／Queue／Service Accounts 為 HTTP 503，Registry 當時只有 HTTP 200 status card，沒有 records list/filter/pagination。這個 Registry 狀態已被 image `0052fa…` 的授權清單驗收取代；後續 image c2f78c7 也已被最上方 2026-11-23 checkpoint 的 `335cab6…` 取代。Langfuse、Gateway、Backstage 均為 health-only HTTP 200。
+- [x] 此 pre-recheck checkpoint 的 ChatGPT in-app browser System 頁顯示 AgentOS 3.2.1、26 Agents／3 Teams／2 Workflows、1 session DB、1 model；Approvals／Schedules／Components／Queue／Service Accounts 為 HTTP 503，Registry 當時只有 HTTP 200 status card，沒有 records list/filter/pagination。這個 Registry 狀態已被 image `0052fa…` 的授權清單驗收取代；後續 image c2f78c7 也已被最上方 2026-11-23 checkpoint 的 `1d2e02e…` 取代。Langfuse、Gateway、Backstage 均為 health-only HTTP 200。
 - [x] 本次 System 畫面已在 browser tool output 擷取並目視檢查；該工具未提供可寫入 repository 的 screenshot file API，因此沒有新建圖檔。
-- [x] 較早 checkpoint 的 Docker Engine named pipe permission denied 已在後續恢復並驗收；當時 Docker CLI 確認 `factory-agent-ui` running、image ID `sha256:0052fa5430b7eed45fc2d78eb0e29f04f71c7cb76c57252fb28eb7927ade7967`，ChatGPT browser 授權 System／Registry UI 與該 image 相符。該 image 已被最上方 2026-11-23 checkpoint 的 `335cab6…` 取代。
+- [x] 較早 checkpoint 的 Docker Engine named pipe permission denied 已在後續恢復並驗收；當時 Docker CLI 確認 `factory-agent-ui` running、image ID `sha256:0052fa5430b7eed45fc2d78eb0e29f04f71c7cb76c57252fb28eb7927ade7967`，ChatGPT browser 授權 System／Registry UI 與該 image 相符。該 image 已被最上方 2026-11-23 checkpoint 的 `1d2e02e…` 取代。
 - [ ] 能力計畫整體未完成。主要缺口仍是真實 Knowledge／Memory／Learning／Trace／eval 資料、Approvals／Schedules 等 503 能力、disconnect／跨 DB 深連結與 125%／完整鍵盤 focus 驗收、operation-level API contract、以及 repo 截圖匯出。
 
 ## 2026-11-22 375px System／Runs verification

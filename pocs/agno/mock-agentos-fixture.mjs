@@ -14,6 +14,31 @@ const databases = [
   domain_config: { display_name }
 }))
 
+const fixtureAgents = [
+  { id: 'fixture-agent-alpha', name: 'Alpha Fixture Agent' },
+  { id: 'fixture-agent-beta', name: 'Beta Fixture Agent' }
+]
+const fixtureTeams = [
+  { id: 'fixture-team-gamma', name: 'Gamma Fixture Team' }
+]
+
+const factoryAgentDefinition = (component) => ({
+  ...component,
+  group: 'Fixture',
+  summary: 'Synthetic detail used to verify Workflow component switching.',
+  inputs: 'Fixture input',
+  outputs: 'Fixture output',
+  skills: [],
+  instructions: 'Never execute; this record exists only for UI verification.',
+  revision: 'fixture-revision',
+  source: 'fixture'
+})
+const runtimeComponent = (component) => ({
+  ...component,
+  model: { name: 'FixtureModel', model: 'fixture-model', provider: 'fixture' },
+  tools: []
+})
+
 const sendJson = (response, status, body) => {
   if (response.destroyed) return
   response.writeHead(status, { 'content-type': 'application/json' })
@@ -48,8 +73,8 @@ const server = createServer((request, response) => {
   }
   if (pathname === '/config') {
     return sendJson(response, 200, {
-      agents: [{ id: 'fixture-agent', name: 'Fixture Agent' }],
-      teams: [],
+      agents: fixtureAgents,
+      teams: fixtureTeams,
       workflows: [{ id: 'fixture-workflow', name: 'Fixture Workflow' }],
       session: { dbs: databases },
       interfaces: [],
@@ -60,9 +85,41 @@ const server = createServer((request, response) => {
     return sendJson(response, 200, { revision: 'fixture-revision' })
   }
   if (pathname === '/agents') {
-    return sendJson(response, 200, [{ id: 'fixture-agent', name: 'Fixture Agent' }])
+    return sendJson(response, 200, fixtureAgents)
   }
-  if (pathname === '/teams') return sendJson(response, 200, [])
+  if (pathname === '/teams') return sendJson(response, 200, fixtureTeams)
+  const agentMatch = pathname.match(/^\/agents\/([^/]+)$/)
+  if (agentMatch) {
+    const component = fixtureAgents.find(({ id }) => id === agentMatch[1])
+    return component
+      ? sendJson(response, 200, runtimeComponent(component))
+      : sendJson(response, 404, { detail: 'Fixture agent not found.' })
+  }
+  const teamMatch = pathname.match(/^\/teams\/([^/]+)$/)
+  if (teamMatch) {
+    const component = fixtureTeams.find(({ id }) => id === teamMatch[1])
+    return component
+      ? sendJson(response, 200, { ...runtimeComponent(component), mode: 'coordinate', members: [] })
+      : sendJson(response, 404, { detail: 'Fixture Team not found.' })
+  }
+  const factoryAgentMatch = pathname.match(/^\/factory\/agents\/([^/]+)$/)
+  if (factoryAgentMatch) {
+    const component = fixtureAgents.find(({ id }) => id === factoryAgentMatch[1])
+    return component
+      ? sendJson(response, 200, factoryAgentDefinition(component))
+      : sendJson(response, 404, { detail: 'Fixture Agent definition not found.' })
+  }
+  const factoryTeamMatch = pathname.match(/^\/factory\/teams\/([^/]+)$/)
+  if (factoryTeamMatch) {
+    const component = fixtureTeams.find(({ id }) => id === factoryTeamMatch[1])
+    return component
+      ? sendJson(response, 200, {
+          ...factoryAgentDefinition(component),
+          members: [],
+          instructions: 'Synthetic Team detail only; never delegate or execute.'
+        })
+      : sendJson(response, 404, { detail: 'Fixture Team definition not found.' })
+  }
   if (pathname === '/workflows') {
     return sendJson(response, 200, [{
       id: 'fixture-workflow',
@@ -83,6 +140,9 @@ const server = createServer((request, response) => {
       name: 'Fixture Workflow',
       revision: 'fixture-revision',
       steps: [
+        { name: 'Alpha Agent Detail Fixture', type: 'agent', ref: 'fixture-agent-alpha' },
+        { name: 'Beta Agent Detail Fixture', type: 'agent', ref: 'fixture-agent-beta' },
+        { name: 'Gamma Team Detail Fixture', type: 'team', ref: 'fixture-team-gamma' },
         { name: 'Loop label fixture', type: 'loop' },
         {
           name: 'Parallel layout fixture',

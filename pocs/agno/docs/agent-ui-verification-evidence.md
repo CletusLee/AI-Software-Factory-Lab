@@ -9,12 +9,32 @@
 
 ## Agno 3.2.1 UI verification
 
-### 2026-11-23 reboot recovery and production image
+### 2026-11-23 reboot recovery and initial production image (superseded)
 
 - Docker Engine 重啟後由 CLI 驗證可用；`docker compose -f pocs/agno/docker-compose.yml up -d --wait --no-build` 恢復服務，未因重開機建置 image。正式 Agent UI 接著以 Docker build 產生並部署 `sha256:335cab6a78137c56a89a6838968edaf798bd32b35ed98f774065bf3267924bb9`；AgentOS 維持 3.2.1，Agno DB healthy。UI container 的 `/` 與 `/api/agentos/health` 回 200，未授權 `/api/agentos/config` 回 401。
 - ChatGPT in-app browser 的 System 頁授權載入 AgentOS `HEALTH OK`、版本 3.2.1、26 Agents／3 Teams／2 Workflows、69 筆 Registry／7 頁、1 個 session DB 與一個可用模型摘要。Langfuse public health、Gateway health、Backstage healthcheck 都回 200；Approvals、Schedules、Components、Queue、Service Accounts 授權 GET 各回 503，Registry 回 200。這些 status 不代表 Langfuse run correlation 或 Backstage Graph 本輪重驗。
 - 新 image 的 Runs 具名 DB 深連結載入 1 個 Continuous Improvement Workflow session 與 1 個 COMPLETED run；URL／Database selector 保留指定 `db_id`，詳情顯示 6 個 step results、10 個 executor runs，session compactions 為 0。直接載入帶 Chat-only `agent` query 的 Runs URL 後，allowlist 將該 query 清除，仍保留 Runs 的 `db_id`、session 與 run；本機只有一個 DB，因此跨 DB 拒絕行為仍引用先前隔離 fixture 的驗收，不由此單 DB 樣本外推。
 - 本輪另以 ChatGPT browser 嘗試 Ctrl+Plus 兩次；畫面與可觀察 viewport 沒有變化，故不標示為實際 125% zoom 證據。System／Runs／Workflow Graph browser 截圖已在工具輸出顯示並檢視，沒有擷取整個桌面；目前 browser API 沒有受支援的 repo 檔案匯出方法，V05 仍未完成。
+
+### 2026-11-23 final UI build and production verification
+
+- Docker Compose 使用 POC patch 對 pinned Agent UI commit `817a009b3d7e407b17b48872f5bbf1c5055b5955` 建置 image。第一次 Docker build 的 `git apply --check` 失敗，沒有替換 production container；將 patch 重新寫成 LF-only 後，獨立 pinned-base index check 成功，Docker patch apply、Next production compile、lint、TypeScript、static page generation 全部通過。
+- Production image `sha256:1d2e02ed08ceab93e13c05066c3021e6e0c0ab897385a2b8df07e93400e7258c` 已部署至 `factory-agent-ui`。Docker CLI 確認 UI running，`GET /`=200、`GET /api/agentos/health`=200、未授權 `GET /api/agentos/config`=401。AgentOS `cletus/agno-agentos:3.2.1` 維持 running；Agno DB running／healthy。只重建 Agent UI。
+- ChatGPT in-app browser reload 到新 image；Accessibility snapshot 顯示 `Refresh AgentOS connection`。本次未在該分頁保留 Token，因此 Agent／Team list 是 0，所選 Team details 的 Factory／runtime／Workflow references 各自顯示 HTTP 401／Retry；此為新 image 的 unauthenticated proxy／錯誤狀態檢查，不是已授權 component data 驗收。
+- 新 image 畫面以 ChatGPT in-app browser screenshot API 擷取至本輪工具輸出；沒有擷取整個電腦。Browser API 無受支援的 repository file export，因此未存 screenshot 檔，V05 仍開放。
+
+### 2026-11-23 bind-mounted Workflow detail regression check
+
+- Docker Compose 啟動隔離的 synthetic AgentOS mock 與 UI fixture（UI 綁定 repo source，host port `127.0.0.1:3002`）；資料是明確標示的 Alpha／Beta Agent 與 Gamma Team，沒有 production Token、資料寫入或模型執行。
+- ChatGPT in-app browser 開啟 Workflow node inspector，依序由 Alpha Agent 切至 Beta Agent、再切至 Gamma Team。每次切換都顯示目前 component 的 name／ID；Gamma Team 的 definition、runtime、Workflow reference 載入完成後，dialog 不含 Alpha／Beta Agent IDs 或舊 Agent details。`WorkflowExplorer` 現以 `${kind}:${id}` 作 React key，避免切換時沿用前次 detail state。結果只代表 synthetic fixture 的切換行為。
+- 同一 fixture 的 accessibility tree 將 Sidebar refresh icon 識別為 `Refresh AgentOS connection`；Tab traversal 覆蓋 Team members／Workflow references、sidebar collapse、九個 workspace navigation controls、token／view controls、搜尋及 component list，未發現 focus trap。這是局部鍵盤檢查，不代表所有 view／dialog／graph node 的完整鍵盤驗收。
+- 已由 ChatGPT in-app browser screenshot API 擷取 Gamma Team inspector 畫面並在工具輸出目視檢查；畫面只含 synthetic fixture，左側顯示 `NO TOKEN SET`。沒有擷取整個桌面；browser API 未提供 repository 檔案匯出能力，未新增 screenshot 檔，V05 保持開放。
+
+### 2026-11-23 expanded read-only session-run census
+
+- `/sessions` 查到目前單一 configured DB 的 47 筆現有 sessions（7 Agent／11 Team／29 Workflow）；47 個 `/sessions/{session_id}/runs` GET 全部回 200。沒有保留任何 session ID、run ID 或 record body。
+- 3 個多 run Agent sessions 的 index 集合皆連續；每個 session 各以 `limit=1` 驗 `before_run_index=max` 與 `after_run_index=min`，均回傳預期相鄰 index 和 `has_more=true`（3/3）。Team run response 的 `data` 會包含 member child runs，因此以 `meta.total_count` 判讀 top-level run 分頁；沒有 Team execution。
+- 本項只涵蓋當時資料與一個 configured DB，並未完成所有 GET query／DB／page 邊界；P0.3 仍開放，見[API 契約](agentos-api-contract.md#2026-11-23-session-run-cursor-audit)。
 
 ### 2026-11-22 mobile inspector and metrics fixture
 
@@ -137,13 +157,13 @@ The ChatGPT in-app browser showed the new Observability → Evaluations view wit
 
 ### 2026-11-22 continuation recheck (image `3e55f72…`; historical)
 
-At this historical checkpoint, Docker inspect showed `factory-agent-ui` (`sha256:3e55f721286f3e9b0383d0447e43d323e92eab0a1c65a87e57d93900886f843c`) and `factory-agentos` (`sha256:833882bc1e024e1acbc6ad9ce953c5b4b1bb0239451ea85f28a1ab17f8b013f2`) running. From inside the UI container, `GET /api/integrations/status` returned HTTP 200 with Langfuse, Gateway, and Backstage all at HTTP 200; the response contained only service IDs, status codes, and timestamps. In ChatGPT's in-app browser, the user-entered Token remained masked on the older `336c9a8…` page, where the protected System data had loaded. Image `3e55f72…` was a separate no-Token tab, showing 401 for protected routes and 200 for the three health probes. That page was captured and reviewed in browser tool output; this browser tool has no supported file export to save the image under `docs/screenshots/`. The later images `0052fa…`, `c2f78c7…`, `a22fbf8…`, and `7fa925d…` are historical; the current image `335cab6…` is documented at the top of this section.
+At this historical checkpoint, Docker inspect showed `factory-agent-ui` (`sha256:3e55f721286f3e9b0383d0447e43d323e92eab0a1c65a87e57d93900886f843c`) and `factory-agentos` (`sha256:833882bc1e024e1acbc6ad9ce953c5b4b1bb0239451ea85f28a1ab17f8b013f2`) running. From inside the UI container, `GET /api/integrations/status` returned HTTP 200 with Langfuse, Gateway, and Backstage all at HTTP 200; the response contained only service IDs, status codes, and timestamps. In ChatGPT's in-app browser, the user-entered Token remained masked on the older `336c9a8…` page, where the protected System data had loaded. Image `3e55f72…` was a separate no-Token tab, showing 401 for protected routes and 200 for the three health probes. That page was captured and reviewed in browser tool output; this browser tool has no supported file export to save the image under `docs/screenshots/`. The later images `0052fa…`, `c2f78c7…`, `a22fbf8…`, and `7fa925d…` are historical; the current image `1d2e02e…` is documented at the top of this section.
 
 Image `3e55f721…` 是較早的 production checkpoint：Docker build／deploy／inspect 成功，AgentOS `/health` 為 HTTP 200，`/openapi.json` 有 94 paths／135 operations 和 `/factory/catalog`。主要授權資料驗收先在 image `8f126975…` 完成；`4f57e9…` 加入 Sidebar Escape／focus-return，`bab1260…` 加入 endpoint 切換隔離，`7809386…` 修正初始化請求，`3e55f72…` 加上外部健康探測與管理路由 status checks。Agno DB health 也已由 Docker runtime 複核。Image `0052fa…` 是前一個 image，最新 `c2f78c7…` 見本節最上方。
 
 | 範圍 | 3.2.1 驗收結果 | 證據／限制 |
 | --- | --- | --- |
-| Previous Docker deployment (`c2f78c7…`, superseded) | 該 checkpoint 的 Agent UI container 為 `running`，image ID `sha256:c2f78c7b237b203bbfcd5bbbd9c9dbb5651cc94b97d237c05a1a97483eb88ec2`；AgentOS 為 `cletus/agno-agentos:3.2.1`、image ID `sha256:833882bc1e024e1acbc6ad9ce953c5b4b1bb0239451ea85f28a1ab17f8b013f2`。 | 當時 Docker CLI 確認三個 POC containers 同屬 `agno-factory-local` project；UI port 3000、container-local `GET /` 回 200。該 image browser 覆驗搜尋、Metrics、Overview、System；Registry filtering 在前一 image `0052fa…` 驗收。現行部署見本節上方 `335cab6…` checkpoint。 |
+| Previous Docker deployment (`c2f78c7…`, superseded) | 該 checkpoint 的 Agent UI container 為 `running`，image ID `sha256:c2f78c7b237b203bbfcd5bbbd9c9dbb5651cc94b97d237c05a1a97483eb88ec2`；AgentOS 為 `cletus/agno-agentos:3.2.1`、image ID `sha256:833882bc1e024e1acbc6ad9ce953c5b4b1bb0239451ea85f28a1ab17f8b013f2`。 | 當時 Docker CLI 確認三個 POC containers 同屬 `agno-factory-local` project；UI port 3000、container-local `GET /` 回 200。該 image browser 覆驗搜尋、Metrics、Overview、System；Registry filtering 在前一 image `0052fa…` 驗收。現行部署見本節上方 `1d2e02e…` checkpoint。 |
 | Native AgentOS Evaluations | Read-only `GET /eval-runs?limit=10&page=1` 回 200、0 rows；meta 為 page 1、limit 10、0 pages、0 total. ChatGPT browser UI 顯示成功空狀態，提供 eval type、component type／ID、model ID 篩選、分頁與 run detail 入口。 | Detail JSON 預設收合；沒有資料可驗非空列、score／reason 或 run detail。Langfuse traces 存在但 datasets API 回 0，故無 A/B dataset run／score／trace correlation 可驗；沒有啟動評估或模型。截圖僅在 browser tool output，未存 repo。 |
 | Dark-theme submit action contrast | Filter buttons in Evals and Traces, Load metrics, and Search knowledge now explicitly use the outline variant. | Rebuilt image `9d41d8…` was loaded in ChatGPT in-app browser; the Evals Filter rendered with a dark background and readable label. The Auth Token remained masked. |
 | Targeted 3.2.1 GET route audit | No Authorization：`/health` 回 200；`/config`、`/agents`、`/factory/revision`、`/factory/catalog`、`/approvals`、`/components`、`/queue`、`/schedules`、`/service-accounts` 各回 401。 | 帶 Authorization 的 GET 抽查與計數已列於[API 契約](agentos-api-contract.md#321-targeted-read-only-get-audit-2026-11-22)；沒有呼叫寫入或執行端點，亦未保存 credential／raw detail。 |
@@ -154,7 +174,7 @@ Image `3e55f721…` 是較早的 production checkpoint：Docker build／deploy�
 | External health checks (image `3e55f72…`; historical) | Agent UI Compose network 對 Langfuse `GET /api/public/health`、Gateway `GET /health`、Backstage `GET /healthcheck` 執行獨立唯讀 GET；browser UI 三項均顯示 HTTP 200 及最後檢查時間。 | 同源 `GET /api/integrations/status` 只回 service ID、HTTP status 或通用錯誤、timestamp；不回傳探測服務的 response body。這只證明 Agent UI 容器到健康路由可達。Backstage Catalog API 未登入回 401；Catalog Graph 與 Langfuse project／trace correlation 未驗。 |
 | Runtime/System Explorer (previous image `0052fa…`) | ChatGPT in-app browser 實際顯示 AgentOS health `OK`、Agno `3.2.1`、26 Agents、3 Teams、2 Workflows、1 session DB、1 available model、0 interfaces；Factory revision counts 與 AgentOS 相符。 | Image `0052fa5430b7…` 的授權 System 頁也顯示 Registry 69 筆與獨立 HTTP status cards；screen captures are visible in browser tool output, with no supported repo screenshot-file export. Historical `system-explorer-desktop.jpg` remains a 2.9.0 screenshot. |
 | Token 安全顯示 | UI Token 欄保持遮罩；只記 API 狀態和摘要，不保存金鑰。 | 畫面截圖中只有遮罩值。 |
-| Docker image IDs at the c2 checkpoint | AgentOS 使用 `cletus/agno-agentos:3.2.1`，image config ID `sha256:833882bc1e024e1acbc6ad9ce953c5b4b1bb0239451ea85f28a1ab17f8b013f2`；該 checkpoint 的 Agent UI image ID `sha256:c2f78c7b237b203bbfcd5bbbd9c9dbb5651cc94b97d237c05a1a97483eb88ec2`。 | 這是歷史部署狀態；目前 Agent UI image 為本節最上方記錄的 `sha256:335cab6…`。 |
+| Docker image IDs at the c2 checkpoint | AgentOS 使用 `cletus/agno-agentos:3.2.1`，image config ID `sha256:833882bc1e024e1acbc6ad9ce953c5b4b1bb0239451ea85f28a1ab17f8b013f2`；該 checkpoint 的 Agent UI image ID `sha256:c2f78c7b237b203bbfcd5bbbd9c9dbb5651cc94b97d237c05a1a97483eb88ec2`。 | 這是歷史部署狀態；目前 Agent UI image 為本節最上方記錄的 `sha256:1d2e02e…`。 |
 | Workflow／Factory counts | UI 顯示 26 Agents、3 Teams、2 Workflows；Factory registry revision `bdcc8db58b2161b3` 與 AgentOS counts 一致。 | 由使用者已在頁面輸入的 Token 載入；未輸出 Token。 |
 | F03 Agent／Team model search (image `c2f78c7…`) | ChatGPT in-app browser 375px 搜尋 `factory-09` 後只剩 Testing Agent；model `MiniMax-M3.1-Flash` 命中 26 Agents 及切換清單後的 3 Teams；provider `OpenAI` 也可命中。切換 Agents／Teams 後 placeholder 與列表跟著變更。 | Query 不分大小寫、會 trim，檢查名稱、ID、model name／ID／provider。其他 Agent 詳情欄位和 Team／Workflow 關聯仍未全盤點。畫面留在 browser tool output，未能匯出 repo 圖檔。 |
 | Overview／Workflow session deep link | 3.2.1 Docker UI 顯示 26 Agents、3 Teams、2 Workflows、健康 OK、Factory revision 與最近 sessions。從 Overview 開啟 Continuous Improvement Workflow session 後，Runs 選到同一 session 與 `COMPLETED` run，顯示 6 step results／10 executor runs。 | Image `8f1269…` 的 ChatGPT in-app browser 375×844 資料驗收中，Overview URL 保留具名 `overview_db`，Runs 顯示同一 session/run；document/body 寬 375px。前一 image `bab1260…` 重新在 375×844、300×675 切過九個工作區，因 Token 不持久化而顯示 401／未授權狀態；本次覆驗其窄版 layout，未重載上述資料數字。 |
@@ -363,7 +383,7 @@ Workflow、Agent／Team 的上述窄版證據通過。新版 Docker UI 再以 37
 
 ## Docker 與建置證據
 
-- 歷史 System／Registry checkpoint image `sha256:0052fa5430b7eed45fc2d78eb0e29f04f71c7cb76c57252fb28eb7927ade7967` 已 Docker build／部署；其 patch apply、Next compile、lint、TypeScript 與 static generation 通過，ChatGPT browser 曾讀取 26 Agents／3 Teams 及 Registry records／filters／pagination。其後 image `c2f78c7…` 的搜尋、Metrics、Overview、System 畫面記錄於本文件上方歷史 checkpoint；此處的歷史 build/runtime 記錄不代表目前部署，目前 image `335cab6…` 見本節最上方。
+- 歷史 System／Registry checkpoint image `sha256:0052fa5430b7eed45fc2d78eb0e29f04f71c7cb76c57252fb28eb7927ade7967` 已 Docker build／部署；其 patch apply、Next compile、lint、TypeScript 與 static generation 通過，ChatGPT browser 曾讀取 26 Agents／3 Teams 及 Registry records／filters／pagination。其後 image `c2f78c7…` 的搜尋、Metrics、Overview、System 畫面記錄於本文件上方歷史 checkpoint；此處的歷史 build/runtime 記錄不代表目前部署，目前 image `1d2e02e…` 見本節最上方。
 - 歷史 image `0052fa…` 由 `docker compose -f pocs/agno/docker-compose.yml build --progress plain agent-ui` build，並由 `docker compose -f pocs/agno/docker-compose.yml up -d --no-deps agent-ui` 部署。當時 Docker image ID：`0052fa5430b7`。
 - AgentOS 的已知 Factory 與元件資料 API 實測：缺 Token 為 401，已知 ID 為 200，未知 Workflow ID 為 404，版本 revision 一致；UI 在使用者授權本機 key 後讀到 26 Agents、3 Teams、2 Workflows。
 - Docker build 內完成 lint/typecheck/build；未另外新增或執行程式測試。
@@ -388,7 +408,7 @@ Workflow、Agent／Team 的上述窄版證據通過。新版 Docker UI 再以 37
 
 - [x] 隔離 Docker fixture 的 Runs network recovery：synthetic `/sessions` 第一次 socket drop，same-origin UI proxy 顯示 `502 Bad Gateway` 與 Retry；按 Retry 後第二次回 `200` empty list，UI 轉成功空狀態。fixture 無 production Token、資料讀寫或模型呼叫。
 - [x] ChatGPT in-app browser 直接載入 Runs deep links：所選 DB 為 `fixture-db-slow-a`、`session_id=fixture-fast-b-result` 時，DB selector 保留 slow-a，清單顯示 `Slow A result` 並說明所選 session 不屬於目前 DB／頁面；`component_id=missing-agent` 時顯示 `Agent not found` 與選擇其他元件提示，不顯示 stale session/run detail。瀏覽器畫面已在工具輸出擷取並檢視；沒有受支援的 screenshot repo export API，故不新增圖檔。
-- [x] 上述深連結驗收到 Chat initialization 原會用 Chat component DB 覆寫 Runs 的 `db_id`。`useChatActions` 現在只在 Chat view／未指定 view 時套用 Chat component DB；Agent UI bind-mounted fixture 的重載與 DB deep link 驗收通過，容器內 `pnpm exec tsc --noEmit` 通過。當時（2026-11-22）修正已同步至 POC `agent-ui.patch`、尚未部署；2026-11-23 已建置並部署至 `sha256:335cab6…`，新 image production 驗收見本文件前段。
+- [x] 上述深連結驗收到 Chat initialization 原會用 Chat component DB 覆寫 Runs 的 `db_id`。`useChatActions` 現在只在 Chat view／未指定 view 時套用 Chat component DB；Agent UI bind-mounted fixture 的重載與 DB deep link 驗收通過，容器內 `pnpm exec tsc --noEmit` 通過。當時（2026-11-22）修正已同步至 POC `agent-ui.patch`、尚未部署；2026-11-23 先部署至 `sha256:335cab6…`，後由 `sha256:1d2e02e…` 取代，新 image production 驗收見本文件前段。
 - [ ] 真實 Trace 存在時的 Run-to-Trace 正向關聯仍待驗。Run detail 導向精確 Trace run filter 已完成，結果為成功空資料；沒有真實配對 Trace，不用 synthetic span 代替。F07 非空 compaction 也仍待真實資料。詳見上方 Observability 證據。
 
 ## 已知缺口與下次接手
@@ -419,7 +439,7 @@ Workflow、Agent／Team 的上述窄版證據通過。新版 Docker UI 再以 37
 
 - [x] 當時 ChatGPT in-app browser 的 System 頁顯示 AgentOS 3.2.1、26 Agents／3 Teams／2 Workflows、1 session DB、1 model，Token 保持遮罩。Approvals／Schedules／Components／Queue／Service Accounts 為 HTTP 503；Registry 當時 HTTP 200 但尚未顯示 records 清單。後續 image 0052 的授權 Registry 清單／篩選／分頁已在本節頂部覆驗。外部 Langfuse／Gateway／Backstage 均為 health-only HTTP 200。
 - [x] 本次畫面已在 ChatGPT browser tool output 擷取；未寫入 repo，因目前截圖操作沒有可用的 repository file export。
-- [x] 較早 Docker CLI named pipe permission denied 已在後續本機 Docker CLI 複核完成：當時 `factory-agent-ui` running，image ID `sha256:0052fa5430b7eed45fc2d78eb0e29f04f71c7cb76c57252fb28eb7927ade7967`；AgentOS 3.2.1 未重啟。該 image 已被本節最上方記錄的 `335cab6…` 取代。
+- [x] 較早 Docker CLI named pipe permission denied 已在後續本機 Docker CLI 複核完成：當時 `factory-agent-ui` running，image ID `sha256:0052fa5430b7eed45fc2d78eb0e29f04f71c7cb76c57252fb28eb7927ade7967`；AgentOS 3.2.1 未重啟。該 image 已被本節最上方記錄的 `1d2e02e…` 取代。
 - [x] 此較早 checkpoint 不改變當時 V03／V05／V06 狀態，也不把 status-only endpoint 或缺資料的畫面標為功能驗收通過；目前狀態以本節頂部 2026-11-23 checkpoint 為準。
 
 #### 2026-11-22 earlier 375px System／Runs checkpoint (viewport was reset then; later set to 375px again)

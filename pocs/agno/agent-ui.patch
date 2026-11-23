@@ -2057,7 +2057,7 @@ index 88421f7..5dfeb65 100644
            (!sessionsData || sessionsData?.length === 0)) ? (
            <SessionBlankState />
 diff --git a/src/components/chat/Sidebar/Sidebar.tsx b/src/components/chat/Sidebar/Sidebar.tsx
-index 4968cbc..20c323c 100644
+index 4968cbc..47a270f 100644
 --- a/src/components/chat/Sidebar/Sidebar.tsx
 +++ b/src/components/chat/Sidebar/Sidebar.tsx
 @@ -5,17 +5,17 @@ import { EntitySelector } from '@/components/chat/Sidebar/EntitySelector'
@@ -2214,7 +2214,15 @@ index 4968cbc..20c323c 100644
    }
  
    const handleCancel = () => {
-@@ -202,35 +286,111 @@ const Endpoint = () => {
+@@ -186,6 +270,7 @@ const Endpoint = () => {
+             variant="ghost"
+             size="icon"
+             onClick={handleRefresh}
++            aria-label="Refresh AgentOS connection"
+             className="hover:cursor-pointer hover:bg-transparent"
+           >
+             <motion.div
+@@ -202,35 +287,111 @@ const Endpoint = () => {
    )
  }
  
@@ -2338,7 +2346,7 @@ index 4968cbc..20c323c 100644
  
    const handleNewChat = () => {
      clearChat()
-@@ -238,13 +398,23 @@ const Sidebar = ({
+@@ -238,13 +399,23 @@ const Sidebar = ({
    }
  
    return (
@@ -2368,7 +2376,7 @@ index 4968cbc..20c323c 100644
          onClick={() => setIsCollapsed(!isCollapsed)}
          className="absolute right-2 top-2 z-10 p-1"
          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-@@ -257,6 +427,38 @@ const Sidebar = ({
+@@ -257,6 +428,38 @@ const Sidebar = ({
            className={`transform ${isCollapsed ? 'rotate-180' : 'rotate-0'}`}
          />
        </motion.button>
@@ -2407,7 +2415,7 @@ index 4968cbc..20c323c 100644
        <motion.div
          className="w-60 space-y-5"
          initial={{ opacity: 0, x: -20 }}
-@@ -274,7 +476,16 @@ const Sidebar = ({
+@@ -274,7 +477,16 @@ const Sidebar = ({
          >
            <Button
              variant="ghost"
@@ -2425,7 +2433,7 @@ index 4968cbc..20c323c 100644
              aria-pressed={activeView === 'chat'}
              className={`h-9 rounded-xl text-xs uppercase ${activeView === 'chat' ? 'bg-accent text-primary' : 'text-muted'}`}
            >
-@@ -283,7 +494,7 @@ const Sidebar = ({
+@@ -283,7 +495,7 @@ const Sidebar = ({
            </Button>
            <Button
              variant="ghost"
@@ -2434,7 +2442,7 @@ index 4968cbc..20c323c 100644
              aria-pressed={activeView === 'workflows'}
              className={`h-9 rounded-xl text-xs uppercase ${activeView === 'workflows' ? 'bg-accent text-primary' : 'text-muted'}`}
            >
-@@ -292,25 +503,70 @@ const Sidebar = ({
+@@ -292,25 +504,70 @@ const Sidebar = ({
            </Button>
            <Button
              variant="ghost"
@@ -2508,7 +2516,7 @@ index 4968cbc..20c323c 100644
              {isEndpointActive && activeView === 'chat' && (
                <>
                  <motion.div
-@@ -335,7 +591,7 @@ const Sidebar = ({
+@@ -335,7 +592,7 @@ const Sidebar = ({
                      <>
                        <ModeSelector />
                        <EntitySelector />
@@ -2517,7 +2525,7 @@ index 4968cbc..20c323c 100644
                          <ModelDisplay model={selectedModel} />
                        )}
                      </>
-@@ -347,7 +603,8 @@ const Sidebar = ({
+@@ -347,7 +604,8 @@ const Sidebar = ({
            </>
          )}
        </motion.div>
@@ -8232,7 +8240,7 @@ index 0000000..fd51fd0
 +
 +export default SystemExplorer
 diff --git a/src/components/workflows/WorkflowExplorer.tsx b/src/components/workflows/WorkflowExplorer.tsx
-index 0101ef9..74a3580 100644
+index 0101ef9..1414e72 100644
 --- a/src/components/workflows/WorkflowExplorer.tsx
 +++ b/src/components/workflows/WorkflowExplorer.tsx
 @@ -1,6 +1,6 @@
@@ -8972,7 +8980,7 @@ index 0101ef9..74a3580 100644
                ) : (
                  <p className="rounded-xl border border-primary/10 bg-accent p-4 text-sm text-muted">
                    This workflow has no steps.
-@@ -526,27 +1070,43 @@ const WorkflowExplorer = () => {
+@@ -526,29 +1070,46 @@ const WorkflowExplorer = () => {
            <button
              type="button"
              aria-label="Close step details"
@@ -9018,8 +9026,11 @@ index 0101ef9..74a3580 100644
 +          )}
            {selectedComponent ? (
              <ComponentDetails
++              key={`${selectedComponent.kind}:${selectedComponent.id}`}
                kind={selectedComponent.kind}
-@@ -581,7 +1141,7 @@ const WorkflowExplorer = () => {
+               id={selectedComponent.id}
+               onSelectAgent={(agentId) =>
+@@ -581,7 +1142,7 @@ const WorkflowExplorer = () => {
                    <h3 className="text-sm font-medium">{selectedStep.name}</h3>
                  </div>
                  <p className="mt-2 pl-6 text-xs text-muted">
